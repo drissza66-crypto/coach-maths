@@ -8,6 +8,7 @@ import { errorHandler, notFound, sameOrigin } from './lib/http.js';
 import { authRouter } from './modules/auth/routes.js';
 import { loadSession } from './modules/auth/session.js';
 import { classesRouter } from './modules/classes/routes.js';
+import { llmRouter } from './modules/llm/routes.js';
 import { meRouter } from './modules/privacy/routes.js';
 
 export function createApp(deps: AppDeps) {
@@ -39,6 +40,7 @@ export function createApp(deps: AppDeps) {
   app.use('/api/auth', authRouter(deps, authLimiter));
   app.use('/api/me', meRouter(deps));
   app.use('/api/classes', classesRouter(deps));
+  app.use('/api/llm', llmRouter(deps));
   app.use('/api', (_req, _res, next) => next(notFound()));
   app.use(errorHandler);
 

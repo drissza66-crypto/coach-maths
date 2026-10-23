@@ -3,6 +3,8 @@ import { createApp } from '../src/app.js';
 import { parseEnv } from '../src/config/env.js';
 import { openDatabase } from '../src/db/client.js';
 import { seed, DEMO } from '../src/db/seed.js';
+import { dbCallLogger } from '../src/llm/journal.js';
+import { createLLM } from '../src/llm/registry.js';
 import { ConsoleMailer } from '../src/mail/mailer.js';
 
 export { DEMO };
@@ -12,6 +14,7 @@ export async function setup(overrides: Record<string, string> = {}) {
     NODE_ENV: 'test',
     DATABASE_URL: 'memory',
     RATE_LIMIT_ENABLED: 'false',
+    MOCK_DELAY_MS: '0',
     FORMATEUR_ALLOWED_DOMAINS: 'cfa-demo.test,cfa.test',
     ...overrides,
   });
@@ -19,7 +22,8 @@ export async function setup(overrides: Record<string, string> = {}) {
   await handle.migrate();
   await seed(handle.db, env.CONSENT_VERSION);
   const mailer = new ConsoleMailer(true);
-  const deps = { db: handle.db, env, mailer };
+  const llm = createLLM(env, dbCallLogger(handle.db));
+  const deps = { db: handle.db, env, mailer, llm };
   const app = createApp(deps);
   return { app, deps, mailer, close: () => handle.close() };
 }

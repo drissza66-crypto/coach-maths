@@ -3,8 +3,8 @@
 Application web gratuite d'appui en mathématiques pour les apprentis de CAP
 (maçonnerie, menuiserie, plomberie…). Le tuteur guide sans donner les réponses.
 
-> **État : étape 1 sur 7 — authentification, comptes et classes.**
-> Le tuteur IA, l'import de documents, les quiz et le suivi arrivent aux étapes suivantes.
+> **État : étapes 1 et 2 sur 7 — comptes et classes, couche fournisseur d'IA.**
+> Le chat du tuteur, l'import de documents, les quiz et le suivi arrivent aux étapes suivantes.
 
 ## Démarrer en local
 
@@ -26,7 +26,12 @@ npm run dev         # API sur :3001, interface sur http://localhost:5173
 | Classe | « CAP Maçon 1 — Démo », code **DAL-LE7** |
 | Apprentis | `Truelle` / `Niveau` / `Equerre` (moins de 15 ans) : codes PIN dans [`apps/api/src/db/seed.ts`](apps/api/src/db/seed.ts) |
 
-Pour repartir de zéro : supprimer `apps/api/.data/` puis relancer `npm run db:seed`.
+Pour repartir de zéro : supprimer le dossier `PGLITE_DATA_DIR` puis relancer `npm run db:seed`.
+
+> ⚠️ **OneDrive / Dropbox** : la synchronisation verrouille les fichiers de la base
+> embarquée, qui ne démarre plus (« PGlite failed to initialize properly »). Placez
+> `PGLITE_DATA_DIR` hors du dossier synchronisé, par exemple
+> `C:/Users/<vous>/AppData/Local/mathsuivi-tuteur/pglite`.
 
 ## Commandes
 
@@ -63,6 +68,50 @@ packages/shared schémas Zod et types partagés entre API et interface
   - PIN oublié : le formateur génère un code provisoire, à changer à la connexion.
 - Sessions par cookie `httpOnly`, `SameSite=Lax`, `Secure` en production ;
   requêtes d'écriture venant d'un autre site refusées.
+
+## Fournisseur d'IA
+
+Le fournisseur se choisit **uniquement** dans `.env`. Aucun nom de modèle n'est écrit
+dans le code. Sans configuration, l'application tourne en **mode Mock** : réponses
+de démonstration, aucune clé, aucune donnée envoyée.
+
+| `LLM_PROVIDER` | Variables | Remarques |
+|---|---|---|
+| `mock` | aucune | Réponses socratiques prédéfinies ; `MOCK_FAIL` simule une panne |
+| `mistral` | `LLM_MODEL`, `LLM_API_KEY` | Hébergé dans l'UE ; sorties JSON contraintes par schéma |
+| `gemini` | `LLM_MODEL`, `LLM_API_KEY` | API Google AI Studio |
+| `claude` | `LLM_MODEL` (ex. `claude-opus-5-5`), `LLM_API_KEY` | SDK officiel Anthropic ; repli serveur en cas de refus de sécurité |
+| `openai-compatible` | `LLM_MODEL`, `LLM_BASE_URL`, `LLM_API_KEY` si besoin | Groq, OpenRouter, Ollama (`http://localhost:11434/v1`, sans clé)… |
+
+Exemple :
+
+```bash
+LLM_PROVIDER=mistral
+LLM_MODEL=nom-du-modele
+LLM_API_KEY=…
+LLM_FALLBACK_PROVIDER=gemini      # facultatif
+LLM_FALLBACK_MODEL=nom-du-modele
+LLM_FALLBACK_API_KEY=…
+```
+
+Au démarrage, l'API vérifie la configuration (modèle et clé obligatoires) et affiche
+le fournisseur utilisé. Le formateur le voit aussi via `GET /api/llm/etat`.
+
+**Architecture** (`apps/api/src/llm/`) :
+- `types.ts` : l'interface unique `LLMProvider` (`chat` en streaming, `generate` validé
+  par un schéma Zod, `vision`). Le reste de l'application ne connaît qu'elle.
+- `providers/` : un adaptateur par fournisseur, plus le `MockProvider`.
+- `resilient.ts` : réessai sur erreur passagère (attente croissante, `Retry-After`
+  respecté), puis bascule sur le fournisseur de repli. Pendant un streaming, la
+  bascule n'a lieu qu'avant le premier mot.
+- `journal.ts` : une ligne par appel (fournisseur, modèle, statut, durée, jetons),
+  **jamais le contenu**, effacée après `LLM_LOG_RETENTION_DAYS` ; limite quotidienne
+  de messages par apprenti (`DAILY_MESSAGE_LIMIT`).
+- `user-messages.ts` : messages clairs à l'apprenti en cas de panne ou de quota.
+- `src/prompts/tutor.system.md` : le prompt système du tuteur, indépendant du fournisseur.
+
+Ajouter un fournisseur : écrire l'adaptateur, l'ajouter à `registry.ts` et à la liste
+`ADAPTERS` de `tests/llm/contract.test.ts`, puis faire passer les tests de contrat.
 
 ## Données personnelles (RGPD)
 

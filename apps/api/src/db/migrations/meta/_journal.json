@@ -8,6 +8,13 @@
       "when": 1792775613023,
       "tag": "0000_thin_logan",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792778509755,
+      "tag": "0001_ia_journal_limites",
+      "breakpoints": true
     }
   ]
 }

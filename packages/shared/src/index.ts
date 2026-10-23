@@ -212,6 +212,15 @@ export interface FormateurClassDetail extends FormateurClass {
   apprentis: ClassMember[];
 }
 
+export interface LLMStatus {
+  fournisseur: string;
+  modele: string;
+  repli: { fournisseur: string; modele: string } | null;
+  /** Fournisseur factice : réponses de démonstration, aucune donnée envoyée. */
+  modeDemo: boolean;
+  limiteQuotidienne: number;
+}
+
 export interface ApiError {
   error: string;
 }

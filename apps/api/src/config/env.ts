@@ -1,4 +1,8 @@
 import { z } from 'zod';
+import { PROVIDER_NAMES, type ProviderName } from '../llm/types.js';
+
+/** Chaîne facultative : une variable vide (« LLM_MODEL= ») vaut absente. */
+const optionalString = z.preprocess((v) => (v === '' ? undefined : v), z.string().optional());
 
 const bool = (fallback: boolean) =>
   z
@@ -40,7 +44,47 @@ const envSchema = z.object({
   MAIL_FROM: z.string().default('Coach Maths <no-reply@localhost>'),
 
   CONSENT_VERSION: z.string().default('2026-10'),
+
+  // ── Fournisseur d'IA : choisi uniquement ici, jamais dans le code ──
+  LLM_PROVIDER: z.preprocess((v) => (v === '' ? undefined : v), z.enum(PROVIDER_NAMES).default('mock')),
+  LLM_MODEL: optionalString,
+  LLM_API_KEY: optionalString,
+  LLM_BASE_URL: optionalString,
+  LLM_VISION_MODEL: optionalString,
+  LLM_FALLBACK_PROVIDER: z.preprocess((v) => (v === '' ? undefined : v), z.enum(PROVIDER_NAMES).optional()),
+  LLM_FALLBACK_MODEL: optionalString,
+  LLM_FALLBACK_API_KEY: optionalString,
+  LLM_FALLBACK_BASE_URL: optionalString,
+  LLM_FALLBACK_VISION_MODEL: optionalString,
+  LLM_TIMEOUT_MS: z.coerce.number().int().positive().default(60000),
+  LLM_MAX_RETRIES: z.coerce.number().int().min(0).max(5).default(2),
+  LLM_RETRY_BASE_MS: z.coerce.number().int().min(0).default(1000),
+  LLM_RETRY_MAX_WAIT_MS: z.coerce.number().int().min(0).default(8000),
+  DAILY_MESSAGE_LIMIT: z.coerce.number().int().positive().default(40),
+  LLM_LOG_RETENTION_DAYS: z.coerce.number().int().positive().default(90),
+  MOCK_DELAY_MS: z.coerce.number().int().min(0).default(15),
+  MOCK_FAIL: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z.enum(['rate_limit', 'quota', 'auth', 'timeout', 'unavailable', 'content_filter']).optional(),
+  ),
 });
+
+function checkProvider(
+  label: string,
+  provider: ProviderName,
+  vars: { model?: string; apiKey?: string; baseUrl?: string },
+  names: { model: string; apiKey: string; baseUrl: string },
+): string[] {
+  if (provider === 'mock') return [];
+  const problems: string[] = [];
+  if (!vars.model) problems.push(`${names.model} est obligatoire avec ${label}=${provider}.`);
+  if (provider === 'openai-compatible') {
+    if (!vars.baseUrl) problems.push(`${names.baseUrl} est obligatoire avec ${label}=openai-compatible.`);
+  } else if (!vars.apiKey) {
+    problems.push(`${names.apiKey} est obligatoire avec ${label}=${provider}.`);
+  }
+  return problems;
+}
 
 export type Env = z.infer<typeof envSchema>;
 
@@ -57,5 +101,22 @@ export function parseEnv(source: Record<string, string | undefined>): Env {
   if (env.NODE_ENV === 'production' && !env.COOKIE_SECURE) {
     throw new Error('Configuration invalide : COOKIE_SECURE=true est obligatoire en production.');
   }
+  const problems = [
+    ...checkProvider(
+      'LLM_PROVIDER',
+      env.LLM_PROVIDER,
+      { model: env.LLM_MODEL, apiKey: env.LLM_API_KEY, baseUrl: env.LLM_BASE_URL },
+      { model: 'LLM_MODEL', apiKey: 'LLM_API_KEY', baseUrl: 'LLM_BASE_URL' },
+    ),
+    ...(env.LLM_FALLBACK_PROVIDER
+      ? checkProvider(
+          'LLM_FALLBACK_PROVIDER',
+          env.LLM_FALLBACK_PROVIDER,
+          { model: env.LLM_FALLBACK_MODEL, apiKey: env.LLM_FALLBACK_API_KEY, baseUrl: env.LLM_FALLBACK_BASE_URL },
+          { model: 'LLM_FALLBACK_MODEL', apiKey: 'LLM_FALLBACK_API_KEY', baseUrl: 'LLM_FALLBACK_BASE_URL' },
+        )
+      : []),
+  ];
+  if (problems.length) throw new Error(`Configuration invalide :\n${problems.map((p) => `  - ${p}`).join('\n')}`);
   return env;
 }

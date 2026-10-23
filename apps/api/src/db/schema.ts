@@ -112,5 +112,42 @@ export const magicLinks = pgTable('magic_links', {
   createdAt: timestamptz('created_at').notNull().defaultNow(),
 });
 
+// ── IA : journal et limites ──────────────────────────────────────────────────
+
+export const llmPurposeEnum = pgEnum('llm_purpose', ['chat', 'generate', 'vision', 'classify']);
+
+/** Qui a répondu, combien de temps, combien de jetons. JAMAIS le contenu des échanges. */
+export const llmCalls = pgTable(
+  'llm_calls',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
+    purpose: llmPurposeEnum('purpose').notNull(),
+    provider: text('provider').notNull(),
+    model: text('model').notNull(),
+    fallbackUsed: boolean('fallback_used').notNull().default(false),
+    /** "ok" ou le type d'erreur (rate_limit, quota, timeout…). */
+    status: text('status').notNull(),
+    latencyMs: integer('latency_ms').notNull(),
+    tokensIn: integer('tokens_in'),
+    tokensOut: integer('tokens_out'),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+  },
+  (t) => [index('llm_calls_created_idx').on(t.createdAt)],
+);
+
+/** Messages envoyés au tuteur par apprenti et par jour (heure de Paris). */
+export const dailyUsage = pgTable(
+  'daily_usage',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    day: text('day').notNull(),
+    messages: integer('messages').notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.day] })],
+);
+
 export type User = typeof users.$inferSelect;
 export type Class = typeof classes.$inferSelect;
