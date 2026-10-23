@@ -1,10 +1,12 @@
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import type { Role } from '@mathsuivi/shared';
 import { homePath, useAuth } from '../auth/AuthContext';
+import { useActivityHeartbeat } from '../auth/useActivityHeartbeat';
 
 export function Layout() {
   const { me, logout } = useAuth();
   const navigate = useNavigate();
+  useActivityHeartbeat(me?.role === 'apprenti');
 
   const links =
     me?.role === 'apprenti'

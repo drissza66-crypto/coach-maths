@@ -14,7 +14,7 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "db:generate": "npm run db:generate -w @mathsuivi/api",
     "db:seed": "npm run db:seed -w @mathsuivi/api",
-    "eval:tutor": "npm run eval:tutor -w @mathsuivi/api"
+    "eval:tutor": "npm run eval:tutor -w @mathsuivi/api --"
   },
   "engines": {
     "node": ">=20.12"

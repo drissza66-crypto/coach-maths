@@ -561,6 +561,37 @@ export interface QuizResults {
   apprentis: { id: string; pseudo: string; meilleurScore: number; total: number; tentatives: number; derniereTentative: string }[];
 }
 
+// ── Suivi des progrès de l'apprenti ──────────────────────────────────────────
+
+/** Battement d'activité : une minute comptée par minute passée sur l'application (page visible). */
+export const ACTIVITY_PING_SECONDS = 60;
+
+export interface ApprentiProgress {
+  pseudo: string;
+  /** Les 7 derniers jours. */
+  semaine: {
+    secondes: number;
+    joursActifs: number;
+    exercices: number;
+    exercicesResolus: number;
+    quiz: number;
+    moyenneQuiz: number | null;
+  };
+  /** Temps passé par semaine (lundi → dimanche), de la plus ancienne à la plus récente. */
+  semaines: { debut: string; secondes: number }[];
+  /** Maîtrise par notion sur les 90 derniers jours (même règle que le tableau de bord). */
+  chapitres: ChapterStat[];
+  /** Questions de quiz ratées et pas encore réussies depuis : les erreurs à reprendre. */
+  aRevoir: {
+    enonce: string;
+    bonneReponse: string;
+    explication: string;
+    chapitre: Chapitre | null;
+    fois: number;
+    derniere: string;
+  }[];
+}
+
 export interface LLMStatus {
   fournisseur: string;
   modele: string;

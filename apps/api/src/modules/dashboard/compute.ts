@@ -12,11 +12,12 @@ import {
 
 /** Données brutes d'une classe sur la période (aucun contenu de conversation). */
 export interface DashboardInput {
-  periode: Periode;
+  /** Fenêtre en jours (7 ou 30 pour le tableau de bord, 90 pour le suivi d'un apprenti). */
+  periode: number;
   now: Date;
   members: { id: string; pseudo: string; lastSeenAt: Date | null }[];
   conversations: { userId: string; chapitre: string | null; niveauIndice: number; resolu: boolean; updatedAt: Date }[];
-  attempts: { userId: string; contentId: string; chapitre: string | null; score: number; total: number }[];
+  attempts: { userId: string; contentId: string; chapitre: string | null; score: number; total: number; createdAt?: Date }[];
   cheatCounts: { userId: string; n: number }[];
   quizContents: { id: string; titre: string; chapitre: string | null; publie: boolean }[];
 }
@@ -131,7 +132,7 @@ export function computeDashboard(input: DashboardInput): ClassDashboard {
   const totalScore = input.attempts.reduce((s, a) => s + a.score, 0);
   const totalQuestions = input.attempts.reduce((s, a) => s + a.total, 0);
   return {
-    periodeJours: input.periode,
+    periodeJours: input.periode as Periode,
     resume: {
       apprentis: input.members.length,
       actifs: input.members.filter((m) => m.lastSeenAt && m.lastSeenAt.getTime() >= since).length,

@@ -804,3 +804,26 @@ details > summary {
   color: var(--text-muted);
   background: var(--surface-2);
 }
+
+/* ── Suivi des progrès ──────────────────────────────────────── */
+
+.week-bars {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.75rem;
+  display: grid;
+  gap: 0.45rem;
+}
+.week-bars li {
+  display: grid;
+  grid-template-columns: 7.5rem 1fr auto;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.9rem;
+}
+.week-label {
+  color: var(--text-muted);
+}
+.week-meter {
+  width: 100%;
+}

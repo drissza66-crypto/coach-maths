@@ -307,6 +307,25 @@ export const quizAttempts = pgTable(
   (t) => [index('quiz_attempts_user_idx').on(t.userId), index('quiz_attempts_content_idx').on(t.contentId)],
 );
 
+// ── Temps passé ──────────────────────────────────────────────────────────────
+
+/**
+ * Temps passé par jour (heure de Paris), au plus près de la minute.
+ * Minimisation : ni pages vues, ni heures précises, seulement un total par jour.
+ */
+export const activityDays = pgTable(
+  'activity_days',
+  {
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    day: text('day').notNull(),
+    secondes: integer('secondes').notNull().default(0),
+    lastPingAt: timestamptz('last_ping_at').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.day] })],
+);
+
 export type User = typeof users.$inferSelect;
 export type ContentRow = typeof contents.$inferSelect;
 export type DocumentRow = typeof documents.$inferSelect;

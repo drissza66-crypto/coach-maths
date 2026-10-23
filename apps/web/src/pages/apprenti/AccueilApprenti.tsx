@@ -11,7 +11,7 @@ const ACTIVITES: { icon: string; titre: string; texte: string; to?: string; ia?:
     ia: true,
   },
   { icon: '🃏', titre: 'Réviser', texte: 'Fiches, cartes mémoire et quiz de ta classe.', to: '/apprenti/reviser' },
-  { icon: '📈', titre: 'Mes progrès', texte: 'Ce que tu maîtrises et ce qu’il reste à travailler.' },
+  { icon: '📈', titre: 'Mes progrès', texte: 'Ce que tu maîtrises et ce qu’il reste à travailler.', to: '/apprenti/progres' },
 ];
 
 export function AccueilApprenti() {

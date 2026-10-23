@@ -13,6 +13,7 @@ import { tutorRouter } from './modules/tutor/routes.js';
 import { documentsRouter } from './modules/documents/routes.js';
 import { contentsRouter, revisionsRouter } from './modules/contents/routes.js';
 import { dashboardRouter } from './modules/dashboard/routes.js';
+import { progressRouter } from './modules/progress/routes.js';
 import { meRouter } from './modules/privacy/routes.js';
 
 export function createApp(deps: AppDeps) {
@@ -50,6 +51,7 @@ export function createApp(deps: AppDeps) {
   app.use('/api/contenus', contentsRouter(deps));
   app.use('/api/revisions', revisionsRouter(deps));
   app.use('/api/tableau-de-bord', dashboardRouter(deps));
+  app.use('/api', progressRouter(deps));
   app.use('/api', (_req, _res, next) => next(notFound()));
   app.use(errorHandler);
 

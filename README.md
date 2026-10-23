@@ -3,9 +3,10 @@
 Application web gratuite d'appui en mathématiques pour les apprentis de CAP
 (maçonnerie, menuiserie, plomberie…). Le tuteur guide sans donner les réponses.
 
-> **État : étapes 1 à 6 sur 7 — comptes et classes, couche fournisseur d'IA, chat tuteur,
-> import de documents et OCR, fiches/quiz/cartes mémoire, tableau de bord formateur.**
-> Le suivi des progrès côté apprenti arrive ensuite.
+> **État : les 7 étapes du MVP sont développées** — comptes et classes, couche fournisseur
+> d'IA, chat tuteur, import de documents et OCR, fiches/quiz/cartes mémoire, tableau de bord
+> formateur, suivi des progrès. Reste à faire : tests avec un vrai fournisseur d'IA et avec de
+> vrais utilisateurs (voir « Critères d'acceptation » en fin de document).
 
 ## Démarrer en local
 
@@ -209,6 +210,21 @@ Page de la classe → « Tableau de bord de la classe » (7 ou 30 derniers jours
 coach.** Les signaux de mal-être détectés par la modération ne sont pas affichés : les
 remonter à un adulte référent est une décision à prendre avec le CFA et son DPO.
 
+## Suivi des progrès
+
+**Apprenti** (« Mes progrès ») : temps passé, jours actifs, exercices et quiz des 7 derniers
+jours ; maîtrise de chaque notion sur 90 jours (même règle que le tableau de bord), avec un
+mot d'encouragement ; **erreurs à reprendre** (questions de quiz ratées et pas encore
+réussies depuis, avec la bonne réponse et l'explication) ; temps passé par semaine.
+
+**Formateur** : la même fiche pour chaque apprenti de sa classe, depuis le tableau de bord
+(clic sur le pseudo). Toujours sans le contenu des échanges avec le coach.
+
+**Temps passé** : une minute est comptée quand la page est visible et que l'apprenti a
+interagi dans les 2 dernières minutes. Seul un total par jour est gardé (table
+`activity_days`), effacé après `ACTIVITY_RETENTION_DAYS` (90 jours). Deux onglets ouverts ne
+comptent pas double. Le temps des formateurs n'est pas suivi.
+
 ## Données personnelles (RGPD)
 
 **En phase de test, utiliser uniquement des données fictives.**
@@ -243,8 +259,29 @@ APP_URL=https://coach-maths.exemple.fr
 MAIL_TRANSPORT=smtp
 SMTP_URL=smtps://…
 FORMATEUR_ALLOWED_DOMAINS=votre-cfa.fr
+FILE_ENCRYPTION_KEY=…            # openssl rand -base64 32 — à sauvegarder à part
+FILES_DIR=/var/lib/coach-maths/files
+LLM_PROVIDER=…                   # fournisseur avec DPA, sans entraînement sur les données
+LLM_MODEL=…
+LLM_API_KEY=…
 ```
 
 L'API applique les migrations au démarrage. L'interface (`apps/web/dist`) se sert
 derrière le même domaine que l'API (proxy `/api`), pour que les cookies restent
 « même site ». `docker-compose.yml` fournit un PostgreSQL local pour tester ce mode.
+
+## Critères d'acceptation
+
+| Critère | État |
+|---|---|
+| Changer de fournisseur d'IA en modifiant uniquement les variables d'environnement | ✅ `tests/llm/config.test.ts`, contrat commun des 4 adaptateurs (`tests/llm/contract.test.ts`) |
+| L'application fonctionne entièrement en mode Mock, sans clé d'API | ✅ chat, photo d'énoncé, cours, génération, quiz, tableau de bord, suivi (tests « mode Mock ») |
+| Le tuteur ne donne jamais la réponse finale (tests automatisés) | ✅ `tests/tutor/` avec un fournisseur « tricheur » ; ⏳ `npm run eval:tutor` à lancer avec le vrai fournisseur choisi |
+| Import et génération de contenu fonctionnels | ✅ `tests/documents/`, `tests/contents/` ; ⏳ qualité des contenus à juger avec un vrai modèle |
+| Données supprimables à la demande | ✅ compte, conversation, cours, classe ; export JSON ; purges automatiques |
+| Testé avec au moins 2 apprentis et 1 formateur | ⏳ **à faire avec de vraies personnes**, sur données fictives, avec un fournisseur conforme |
+
+Accessibilité : formulaires étiquetés, focus visible et déplacé à chaque page, annonces
+pour les lecteurs d'écran (réponses du coach, scores), statuts jamais portés par la seule
+couleur, cibles de 44 px, contrastes AA, mode sombre. Un audit WCAG 2.2 AA complet (outil
+automatique + test avec un lecteur d'écran) reste à faire.

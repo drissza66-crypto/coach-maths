@@ -7,7 +7,7 @@ import { forbidden } from '../../lib/http.js';
 import { exportConversations } from '../tutor/service.js';
 import { exportAttempts } from '../contents/service.js';
 import { removeFilesWhere, toCourseDocument } from '../documents/service.js';
-import { documents } from '../../db/schema.js';
+import { activityDays, documents } from '../../db/schema.js';
 
 /** Utilisateurs (parmi userIds) qui ont un accord actif pour le tuteur IA. */
 export async function usersWithIaConsent(db: Db, userIds: string[]): Promise<Set<string>> {
@@ -102,6 +102,7 @@ export async function exportUserData(deps: AppDeps, user: User) {
     })),
     conversationsAvecLeTuteur: await exportConversations(deps, user.id),
     resultatsDesQuiz: await exportAttempts(deps, user.id),
+    tempsPasseParJour: (await db.select({ jour: activityDays.day, secondes: activityDays.secondes }).from(activityDays).where(eq(activityDays.userId, user.id))),
     documentsImportes: (await db.select().from(documents).where(eq(documents.ownerId, user.id))).map(toCourseDocument),
   };
 }

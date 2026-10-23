@@ -82,6 +82,9 @@ const envSchema = z.object({
 
   /** Générations de fiches/quiz/cartes par formateur et par jour. */
   GENERATION_DAILY_LIMIT: z.coerce.number().int().positive().default(30),
+
+  /** Temps passé par jour : conservé ce nombre de jours. */
+  ACTIVITY_RETENTION_DAYS: z.coerce.number().int().positive().default(90),
   MOCK_DELAY_MS: z.coerce.number().int().min(0).default(15),
   MOCK_FAIL: z.preprocess(
     (v) => (v === '' ? undefined : v),

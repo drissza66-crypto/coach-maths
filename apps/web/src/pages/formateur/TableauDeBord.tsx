@@ -149,7 +149,9 @@ export function TableauDeBord() {
                   <tbody>
                     {data.apprentis.map((a) => (
                       <tr key={a.id}>
-                        <th scope="row">{a.pseudo}</th>
+                        <th scope="row">
+                          <Link to={`/formateur/classes/${id}/apprentis/${a.id}`}>{a.pseudo}</Link>
+                        </th>
                         <td>{formatDate(a.derniereVisite)}</td>
                         <td>{a.exercices ? `${a.resolus} / ${a.exercices}` : '—'}</td>
                         <td>{a.quizPasses ? `${a.quizPasses} · ${pct(a.moyenneQuiz)}` : '—'}</td>

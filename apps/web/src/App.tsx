@@ -12,6 +12,8 @@ import { Reviser, Revision } from './pages/apprenti/Reviser';
 import { ContenuFormateur } from './pages/formateur/ContenuFormateur';
 import { ResultatsQuiz } from './pages/formateur/ResultatsQuiz';
 import { TableauDeBord } from './pages/formateur/TableauDeBord';
+import { SuiviApprenti } from './pages/formateur/SuiviApprenti';
+import { MesProgres } from './pages/apprenti/MesProgres';
 import { ClasseDetail } from './pages/formateur/ClasseDetail';
 import { Classes } from './pages/formateur/Classes';
 import { ConnexionFormateur } from './pages/formateur/ConnexionFormateur';
@@ -34,6 +36,7 @@ export function App() {
         <Route element={<RequireRole roles={['apprenti']} />}>
           <Route path="apprenti" element={<AccueilApprenti />} />
           <Route path="apprenti/code" element={<ChangerPin />} />
+          <Route path="apprenti/progres" element={<MesProgres />} />
           <Route path="apprenti/reviser" element={<Reviser />} />
           <Route path="apprenti/reviser/:id" element={<Revision />} />
           {/* Route parente : la page reste montée quand l'URL passe à /:id en plein streaming. */}
@@ -49,6 +52,7 @@ export function App() {
           <Route path="formateur/contenus/:id" element={<ContenuFormateur />} />
           <Route path="formateur/contenus/:id/resultats" element={<ResultatsQuiz />} />
           <Route path="formateur/classes/:id/tableau-de-bord" element={<TableauDeBord />} />
+          <Route path="formateur/classes/:id/apprentis/:apprentiId" element={<SuiviApprenti />} />
         </Route>
 
         <Route element={<RequireRole roles={['apprenti', 'formateur', 'admin']} />}>

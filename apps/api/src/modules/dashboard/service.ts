@@ -14,7 +14,7 @@ import { computeDashboard, type DashboardInput } from './compute.js';
 export async function loadDashboardInput(
   deps: AppDeps,
   classId: string,
-  periode: Periode,
+  periode: number,
   now = new Date(),
 ): Promise<DashboardInput> {
   const { db } = deps;
@@ -55,6 +55,7 @@ export async function loadDashboardInput(
           chapitre: contents.chapitre,
           score: quizAttempts.score,
           total: quizAttempts.total,
+          createdAt: quizAttempts.createdAt,
         })
         .from(quizAttempts)
         .innerJoin(contents, eq(contents.id, quizAttempts.contentId))
