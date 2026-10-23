@@ -3,8 +3,8 @@
 Application web gratuite d'appui en mathématiques pour les apprentis de CAP
 (maçonnerie, menuiserie, plomberie…). Le tuteur guide sans donner les réponses.
 
-> **État : étapes 1 et 2 sur 7 — comptes et classes, couche fournisseur d'IA.**
-> Le chat du tuteur, l'import de documents, les quiz et le suivi arrivent aux étapes suivantes.
+> **État : étapes 1 à 3 sur 7 — comptes et classes, couche fournisseur d'IA, chat tuteur.**
+> L'import de documents (photo d'énoncé), les quiz et le suivi arrivent aux étapes suivantes.
 
 ## Démarrer en local
 
@@ -112,6 +112,39 @@ le fournisseur utilisé. Le formateur le voit aussi via `GET /api/llm/etat`.
 
 Ajouter un fournisseur : écrire l'adaptateur, l'ajouter à `registry.ts` et à la liste
 `ADAPTERS` de `tests/llm/contract.test.ts`, puis faire passer les tests de contrat.
+
+## Chat tuteur
+
+Parcours de l'apprenti bloqué (`/apprenti/tuteur`) : il écrit son exercice, le coach
+pose une question de compréhension, donne l'indice 1 puis l'indice 2 à la demande,
+vérifie la démarche, puis propose un exercice similaire. Réponses en streaming (SSE).
+
+**Le tuteur ne donne jamais la réponse finale.** Plusieurs couches, de la plus souple
+à la plus stricte (`apps/api/src/modules/tutor/`) :
+
+1. **Prompt système** (`src/prompts/tutor.system.md`) : règle absolue, guidage socratique.
+2. **Consigne du tour** (`orchestrator.ts`) : l'étape, le niveau d'indice et la
+   vérification de la réponse sont décidés par le serveur, pas par le modèle. À la
+   création, l'exercice est classé (chapitre, notion) et son résultat calculé ; ce
+   résultat reste sur le serveur et n'est jamais envoyé au modèle qui dialogue.
+3. **Détection de triche et de contournement** (`cheat.ts`) : consigne de recadrage,
+   compteur sans texte.
+4. **`answerGuard`** (`answer-guard.ts`) : le flux est vérifié phrase par phrase ; une
+   phrase contenant le résultat attendu est remplacée avant d'arriver à l'écran, tant que
+   l'apprenti ne l'a pas trouvé lui-même. Limite connue : un résultat écrit en toutes
+   lettres (« quatorze virgule quatre ») n'est pas repéré.
+
+**Modération** (`moderation.ts`), avant tout envoi à l'IA :
+- téléphone, e-mail et adresse sont masqués (ni envoyés, ni enregistrés) ;
+- mal-être ou danger : réponse humaine fixe avec le 3114, le 119 et le 112, sans IA ;
+- langage inadapté : rappel bienveillant, sans IA.
+
+**Tests** : `npm test` vérifie avec un faux fournisseur « tricheur » que le résultat
+n'arrive jamais à l'écran (découpé en morceaux, écrit à l'anglaise, etc.).
+`npm run eval:tutor` rejoue 10 scénarios d'apprentis qui insistent ou contournent les
+règles contre le **vrai** fournisseur de `.env`. Il mesure le taux de tentatives du
+modèle et vérifie que rien n'arrive à l'écran (≈ 40 appels payants, données fictives).
+`npm run eval:tutor -- --essai` vérifie le script en mode Mock.
 
 ## Données personnelles (RGPD)
 

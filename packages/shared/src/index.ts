@@ -212,6 +212,101 @@ export interface FormateurClassDetail extends FormateurClass {
   apprentis: ClassMember[];
 }
 
+// ── Tuteur ───────────────────────────────────────────────────────────────────
+
+export const CHAPITRES = [
+  'calcul',
+  'proportionnalite',
+  'pourcentages',
+  'geometrie',
+  'aires_volumes',
+  'pythagore',
+  'fonctions',
+  'electricite',
+  'autre',
+] as const;
+export type Chapitre = (typeof CHAPITRES)[number];
+export const CHAPITRE_LABELS: Record<Chapitre, string> = {
+  calcul: 'Calcul',
+  proportionnalite: 'Proportionnalité',
+  pourcentages: 'Pourcentages',
+  geometrie: 'Géométrie',
+  aires_volumes: 'Aires et volumes',
+  pythagore: 'Pythagore',
+  fonctions: 'Fonctions',
+  electricite: 'Électricité',
+  autre: 'Autre',
+};
+
+/** Parcours de l'apprenti bloqué : compréhension → indice 1 → indice 2 → validation → exercice similaire. */
+export const ETAPES = ['comprehension', 'indice1', 'indice2', 'validation', 'similaire'] as const;
+export type Etape = (typeof ETAPES)[number];
+export const ETAPE_LABELS: Record<Etape, string> = {
+  comprehension: 'Comprendre l’exercice',
+  indice1: 'Indice 1',
+  indice2: 'Indice 2',
+  validation: 'Vérifier ma réponse',
+  similaire: 'Exercice similaire',
+};
+
+export const MAX_MESSAGE_LENGTH = 2000;
+
+export const startConversationSchema = z.object({
+  enonce: z
+    .string()
+    .trim()
+    .min(5, 'Écris ton exercice (au moins quelques mots).')
+    .max(MAX_MESSAGE_LENGTH, 'Ton exercice est trop long. Garde la partie où tu bloques.'),
+});
+
+export const sendMessageSchema = z.object({
+  contenu: z.string().trim().min(1, 'Écris ton message.').max(MAX_MESSAGE_LENGTH, 'Ton message est trop long.'),
+  demandeIndice: z.boolean().optional(),
+});
+
+export interface TutorMessage {
+  id: string;
+  auteur: 'apprenti' | 'tuteur';
+  contenu: string;
+  envoyeLe: string;
+}
+
+export interface ConversationSummary {
+  id: string;
+  enonce: string;
+  chapitre: Chapitre | null;
+  etape: Etape;
+  niveauIndice: number;
+  resolue: boolean;
+  misAJourLe: string;
+}
+
+export interface ConversationDetail extends ConversationSummary {
+  notion: string | null;
+  messages: TutorMessage[];
+}
+
+export interface Quota {
+  utilises: number;
+  limite: number;
+  restants: number;
+}
+
+/** Événements SSE envoyés pendant la réponse du tuteur. */
+export type TutorStreamEvent =
+  | { type: 'debut'; conversation: ConversationSummary }
+  | { type: 'texte'; texte: string }
+  | {
+      type: 'fin';
+      message: TutorMessage;
+      messageApprenti: TutorMessage;
+      etape: Etape;
+      niveauIndice: number;
+      resolue: boolean;
+      quota: Quota;
+    }
+  | { type: 'erreur'; message: string; reessayerDans?: number };
+
 export interface LLMStatus {
   fournisseur: string;
   modele: string;

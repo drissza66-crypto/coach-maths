@@ -2,8 +2,14 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import { Alert, Page } from '../../components/ui';
 
-const ACTIVITES = [
-  { icon: '🆘', titre: 'Je suis bloqué', texte: 'Photographie ou écris ton exercice. Le coach t’aide pas à pas.' },
+const ACTIVITES: { icon: string; titre: string; texte: string; to?: string; ia?: boolean }[] = [
+  {
+    icon: '🆘',
+    titre: 'Je suis bloqué',
+    texte: 'Écris ton exercice. Le coach t’aide pas à pas, sans te donner la réponse.',
+    to: '/apprenti/tuteur',
+    ia: true,
+  },
   { icon: '🃏', titre: 'Réviser', texte: 'Fiches, cartes mémoire et quiz de ta classe.' },
   { icon: '📈', titre: 'Mes progrès', texte: 'Ce que tu maîtrises et ce qu’il reste à travailler.' },
 ];
@@ -33,20 +39,36 @@ export function AccueilApprenti() {
 
       <h2>Que veux-tu faire ?</h2>
       <ul className="grid" style={{ listStyle: 'none', padding: 0 }}>
-        {ACTIVITES.map((a) => (
-          <li key={a.titre}>
-            <div className="choice-card" aria-disabled="true">
+        {ACTIVITES.map((a) => {
+          const open = a.to && (!a.ia || me.tuteurIaAutorise);
+          const content = (
+            <>
               <span className="icon" aria-hidden="true">
                 {a.icon}
               </span>
               <strong>{a.titre}</strong>
               <span className="muted">{a.texte}</span>
-              <p className="small" style={{ marginTop: '0.6rem', marginBottom: 0 }}>
-                <span className="badge badge-wait">Bientôt disponible</span>
-              </p>
-            </div>
-          </li>
-        ))}
+              {!open && (
+                <p className="small" style={{ marginTop: '0.6rem', marginBottom: 0 }}>
+                  <span className="badge badge-wait">{a.to ? 'Pas encore activé' : 'Bientôt disponible'}</span>
+                </p>
+              )}
+            </>
+          );
+          return (
+            <li key={a.titre}>
+              {open ? (
+                <Link to={a.to!} className="choice-card">
+                  {content}
+                </Link>
+              ) : (
+                <div className="choice-card" aria-disabled="true">
+                  {content}
+                </div>
+              )}
+            </li>
+          );
+        })}
       </ul>
 
       <p style={{ marginTop: '1.5rem' }}>

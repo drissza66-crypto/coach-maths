@@ -55,6 +55,14 @@ export async function consumeDailyMessage(db: Db, userId: string, limit: number,
   return { allowed: false, used: limit, limit };
 }
 
+/** Rend le message compté si l'IA n'a pas pu répondre : une panne ne coûte rien à l'apprenti. */
+export async function refundDailyMessage(db: Db, userId: string, now = new Date()) {
+  await db
+    .update(dailyUsage)
+    .set({ messages: sql`greatest(${dailyUsage.messages} - 1, 0)` })
+    .where(and(eq(dailyUsage.userId, userId), eq(dailyUsage.day, parisDay(now))));
+}
+
 export async function getDailyUsage(db: Db, userId: string, limit: number, now = new Date()): Promise<DailyQuota> {
   const [row] = await db
     .select({ messages: dailyUsage.messages })

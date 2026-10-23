@@ -111,7 +111,17 @@ describe('messages à l’apprenti', () => {
 describe('prompt système du tuteur', () => {
   it('est un fichier séparé avec des variables', () => {
     expect(variablesOf('tutor.system')).toEqual(
-      expect.arrayContaining(['niveau', 'metier', 'etape', 'niveau_indice', 'chapitre', 'notion', 'extraits_cours']),
+      expect.arrayContaining([
+        'niveau',
+        'metier',
+        'etape',
+        'niveau_indice',
+        'chapitre',
+        'notion',
+        'extraits_cours',
+        'enonce',
+        'consigne_du_tour',
+      ]),
     );
   });
 
@@ -124,6 +134,8 @@ describe('prompt système du tuteur', () => {
       chapitre: 'aires',
       notion: 'rectangle',
       extraits_cours: '(aucun)',
+      enonce: 'Une pièce de 4 m sur 3 m.',
+      consigne_du_tour: 'Continue.',
     };
     const text = renderPrompt('tutor.system', vars);
     expect(text).toContain('apprenti de CAP 1re année en Maçon');

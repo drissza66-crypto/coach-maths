@@ -5,11 +5,14 @@ import { openDatabase } from '../src/db/client.js';
 import { seed, DEMO } from '../src/db/seed.js';
 import { dbCallLogger } from '../src/llm/journal.js';
 import { createLLM } from '../src/llm/registry.js';
+import { ResilientProvider } from '../src/llm/resilient.js';
+import type { LLMProvider } from '../src/llm/types.js';
 import { ConsoleMailer } from '../src/mail/mailer.js';
 
 export { DEMO };
 
-export async function setup(overrides: Record<string, string> = {}) {
+/** `provider` : remplace le fournisseur configuré (fournisseur scripté pour les tests). */
+export async function setup(overrides: Record<string, string> = {}, provider?: LLMProvider) {
   const env = parseEnv({
     NODE_ENV: 'test',
     DATABASE_URL: 'memory',
@@ -22,7 +25,9 @@ export async function setup(overrides: Record<string, string> = {}) {
   await handle.migrate();
   await seed(handle.db, env.CONSENT_VERSION);
   const mailer = new ConsoleMailer(true);
-  const llm = createLLM(env, dbCallLogger(handle.db));
+  const llm = provider
+    ? new ResilientProvider(provider, null, { maxRetries: 0, baseDelayMs: 0, maxDelayMs: 0, log: dbCallLogger(handle.db) })
+    : createLLM(env, dbCallLogger(handle.db));
   const deps = { db: handle.db, env, mailer, llm };
   const app = createApp(deps);
   return { app, deps, mailer, close: () => handle.close() };

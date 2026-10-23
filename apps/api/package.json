@@ -8,7 +8,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
-    "db:seed": "tsx src/db/run-seed.ts"
+    "db:seed": "tsx src/db/run-seed.ts",
+    "eval:tutor": "tsx evals/run-tutor-evals.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.2.0",

@@ -4,6 +4,7 @@ import type { AppDeps } from '../../deps.js';
 import type { Db } from '../../db/client.js';
 import { classMembers, classes, consents, users, type User } from '../../db/schema.js';
 import { forbidden } from '../../lib/http.js';
+import { exportConversations } from '../tutor/service.js';
 
 /** Utilisateurs (parmi userIds) qui ont un accord actif pour le tuteur IA. */
 export async function usersWithIaConsent(db: Db, userIds: string[]): Promise<Set<string>> {
@@ -96,6 +97,7 @@ export async function exportUserData(deps: AppDeps, user: User) {
       donneLe: c.grantedAt.toISOString(),
       retireLe: c.revokedAt?.toISOString() ?? null,
     })),
+    conversationsAvecLeTuteur: await exportConversations(deps, user.id),
   };
 }
 

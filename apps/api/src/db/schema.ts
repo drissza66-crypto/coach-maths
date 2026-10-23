@@ -10,7 +10,7 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
-import { CONSENT_GIVERS, CONSENT_TYPES, METIERS, NIVEAUX, ROLES } from '@mathsuivi/shared';
+import { CONSENT_GIVERS, CONSENT_TYPES, ETAPES, METIERS, NIVEAUX, ROLES } from '@mathsuivi/shared';
 
 const timestamptz = (name: string) => timestamp(name, { withTimezone: true });
 
@@ -149,5 +149,62 @@ export const dailyUsage = pgTable(
   (t) => [primaryKey({ columns: [t.userId, t.day] })],
 );
 
+// ── Tuteur ───────────────────────────────────────────────────────────────────
+
+export const etapeEnum = pgEnum('etape_tuteur', ETAPES);
+export const auteurEnum = pgEnum('auteur_message', ['apprenti', 'tuteur']);
+
+export const conversations = pgTable(
+  'conversations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    enonce: text('enonce').notNull(),
+    chapitre: text('chapitre'),
+    notion: text('notion'),
+    /** Connue du serveur seulement : sert à vérifier l'apprenti et à bloquer les fuites. */
+    reponseAttendue: text('reponse_attendue'),
+    etape: etapeEnum('etape').notNull().default('comprehension'),
+    niveauIndice: integer('niveau_indice').notNull().default(0),
+    resoluLe: timestamptz('resolu_le'),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+    /** Dernière activité : la conversation est effacée CHAT_RETENTION_DAYS après. */
+    updatedAt: timestamptz('updated_at').notNull().defaultNow(),
+  },
+  (t) => [index('conversations_user_idx').on(t.userId, t.updatedAt)],
+);
+
+export const messages = pgTable(
+  'messages',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    conversationId: uuid('conversation_id')
+      .notNull()
+      .references(() => conversations.id, { onDelete: 'cascade' }),
+    auteur: auteurEnum('auteur').notNull(),
+    contenu: text('contenu').notNull(),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+  },
+  (t) => [index('messages_conversation_idx').on(t.conversationId, t.createdAt)],
+);
+
+/** Événements de modération : catégorie seulement, jamais le texte. */
+export const moderationEvents = pgTable(
+  'moderation_events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    conversationId: uuid('conversation_id').references(() => conversations.id, { onDelete: 'cascade' }),
+    categorie: text('categorie').notNull(),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+  },
+  (t) => [index('moderation_events_user_idx').on(t.userId)],
+);
+
 export type User = typeof users.$inferSelect;
+export type Conversation = typeof conversations.$inferSelect;
 export type Class = typeof classes.$inferSelect;

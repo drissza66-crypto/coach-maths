@@ -62,6 +62,10 @@ const envSchema = z.object({
   LLM_RETRY_MAX_WAIT_MS: z.coerce.number().int().min(0).default(8000),
   DAILY_MESSAGE_LIMIT: z.coerce.number().int().positive().default(40),
   LLM_LOG_RETENTION_DAYS: z.coerce.number().int().positive().default(90),
+  /** Conversations effacées après ce nombre de jours sans activité. */
+  CHAT_RETENTION_DAYS: z.coerce.number().int().positive().default(30),
+  /** Messages précédents renvoyés à l'IA à chaque tour. */
+  CHAT_HISTORY_MESSAGES: z.coerce.number().int().min(2).default(20),
   MOCK_DELAY_MS: z.coerce.number().int().min(0).default(15),
   MOCK_FAIL: z.preprocess(
     (v) => (v === '' ? undefined : v),
