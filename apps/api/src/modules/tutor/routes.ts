@@ -1,8 +1,10 @@
 import { Router, type Response } from 'express';
-import { sendMessageSchema, startConversationSchema, type TutorStreamEvent } from '@mathsuivi/shared';
+import { sendMessageSchema, startConversationSchema, type PhotoReadResult, type TutorStreamEvent } from '@mathsuivi/shared';
 import type { AppDeps } from '../../deps.js';
 import type { Conversation, User } from '../../db/schema.js';
-import { consumeDailyMessage, getDailyUsage } from '../../llm/journal.js';
+import { consumeDailyMessage, getDailyUsage, refundDailyMessage } from '../../llm/journal.js';
+import { sniffMime } from '../documents/extract.js';
+import { singleFile } from '../documents/upload.js';
 import { HttpError, parseBody } from '../../lib/http.js';
 import { requireRole } from '../auth/session.js';
 import {
@@ -12,6 +14,7 @@ import {
   getConversationDetail,
   getOwnConversation,
   listConversations,
+  readExercisePhoto,
   runTurn,
   toQuota,
   toSummary,
@@ -63,6 +66,26 @@ export function tutorRouter(deps: AppDeps) {
       end();
     }
   }
+
+  /** Photo d'un énoncé → texte, que l'apprenti vérifie avant de commencer. */
+  router.post('/photo', singleFile('photo', deps.env.UPLOAD_MAX_MB), async (req, res) => {
+    const user = req.user!;
+    await assertIaAllowed(deps, user);
+    if (!req.file?.buffer.length) throw new HttpError(400, 'Choisis une photo.');
+    const mime = sniffMime(req.file.buffer);
+    if (!mime || mime === 'application/pdf') {
+      throw new HttpError(415, 'Envoie une photo (JPEG, PNG ou WebP).');
+    }
+    const quota = await reserve(user);
+    try {
+      const texte = await readExercisePhoto(deps, user, { data: req.file.buffer, mimeType: mime });
+      const result: PhotoReadResult = { texte, quota: toQuota(quota) };
+      res.json(result);
+    } catch (err) {
+      await refundDailyMessage(deps.db, user.id);
+      throw err;
+    }
+  });
 
   router.get('/quota', async (req, res) => {
     res.json(toQuota(await getDailyUsage(deps.db, req.user!.id, deps.env.DAILY_MESSAGE_LIMIT)));

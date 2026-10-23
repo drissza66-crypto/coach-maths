@@ -3,8 +3,8 @@
 Application web gratuite d'appui en mathématiques pour les apprentis de CAP
 (maçonnerie, menuiserie, plomberie…). Le tuteur guide sans donner les réponses.
 
-> **État : étapes 1 à 3 sur 7 — comptes et classes, couche fournisseur d'IA, chat tuteur.**
-> L'import de documents (photo d'énoncé), les quiz et le suivi arrivent aux étapes suivantes.
+> **État : étapes 1 à 4 sur 7 — comptes et classes, couche fournisseur d'IA, chat tuteur,
+> import de documents et OCR.** Les fiches/quiz, le tableau de bord et le suivi arrivent ensuite.
 
 ## Démarrer en local
 
@@ -145,6 +145,26 @@ n'arrive jamais à l'écran (découpé en morceaux, écrit à l'anglaise, etc.).
 règles contre le **vrai** fournisseur de `.env`. Il mesure le taux de tentatives du
 modèle et vérifie que rien n'arrive à l'écran (≈ 40 appels payants, données fictives).
 `npm run eval:tutor -- --essai` vérifie le script en mode Mock.
+
+## Import de documents et OCR
+
+**Photo d'énoncé (apprenti)** — bouton « Prendre l'exercice en photo » :
+la photo est réduite et ré-encodée **dans le navigateur** (ce qui retire les métadonnées,
+dont la position GPS), lue par le modèle de vision (`src/prompts/ocr.image.md`), puis
+**oubliée** : elle n'est jamais écrite sur disque. Le texte lu (données personnelles
+masquées) est placé dans la zone de saisie pour que l'apprenti le vérifie.
+
+**Cours de la classe (formateur)** — page de la classe, section « Cours de la classe » :
+- PDF avec texte (extraction avec `unpdf`) ou photo d'une page (OCR par le modèle de vision) ;
+- type vérifié d'après les premiers octets du fichier, jamais d'après l'extension ;
+- fichier chiffré sur disque en **AES-256-GCM** (`src/storage/encrypted-store.ts`),
+  clé `FILE_ENCRYPTION_KEY`, **supprimé automatiquement après 30 jours** ;
+- texte découpé en passages, indexé par la recherche plein texte française de
+  PostgreSQL. **RAG** : à chaque message, le tuteur reçoit les passages les plus proches
+  de l'exercice (`src/modules/documents/search.ts`).
+
+Limites connues : un PDF scanné (images seules) est refusé, il faut importer des photos
+des pages. En mode Mock, l'OCR renvoie toujours le même énoncé de démonstration.
 
 ## Données personnelles (RGPD)
 

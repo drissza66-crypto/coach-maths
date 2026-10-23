@@ -5,6 +5,8 @@ import type { Db } from '../../db/client.js';
 import { classMembers, classes, consents, users, type User } from '../../db/schema.js';
 import { forbidden } from '../../lib/http.js';
 import { exportConversations } from '../tutor/service.js';
+import { removeFilesWhere, toCourseDocument } from '../documents/service.js';
+import { documents } from '../../db/schema.js';
 
 /** Utilisateurs (parmi userIds) qui ont un accord actif pour le tuteur IA. */
 export async function usersWithIaConsent(db: Db, userIds: string[]): Promise<Set<string>> {
@@ -98,10 +100,15 @@ export async function exportUserData(deps: AppDeps, user: User) {
       retireLe: c.revokedAt?.toISOString() ?? null,
     })),
     conversationsAvecLeTuteur: await exportConversations(deps, user.id),
+    documentsImportes: (await db.select().from(documents).where(eq(documents.ownerId, user.id))).map(toCourseDocument),
   };
 }
 
-/** Droit à l'effacement : la suppression du compte efface tout en cascade. */
-export async function deleteUser({ db }: AppDeps, userId: string) {
-  await db.delete(users).where(eq(users.id, userId));
+/**
+ * Droit à l'effacement : la suppression du compte efface tout en cascade.
+ * Les fichiers chiffrés ne sont pas en base : ils sont effacés d'abord.
+ */
+export async function deleteUser(deps: AppDeps, userId: string) {
+  await removeFilesWhere(deps, { ownerId: userId });
+  await deps.db.delete(users).where(eq(users.id, userId));
 }

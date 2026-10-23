@@ -60,7 +60,12 @@ await handle.migrate();
 await seed(handle.db, env.CONSENT_VERSION);
 const { ResilientProvider } = await import('../src/llm/resilient.js');
 const llm = new ResilientProvider(recording, null, { maxRetries: 2, baseDelayMs: 2000, maxDelayMs: 30000 });
-const app = createApp({ db: handle.db, env, mailer: new ConsoleMailer(true), llm });
+const { EncryptedStore } = await import('../src/storage/encrypted-store.js');
+const { mkdtempSync } = await import('node:fs');
+const { tmpdir } = await import('node:os');
+const { randomBytes } = await import('node:crypto');
+const files = new EncryptedStore(mkdtempSync(`${tmpdir()}/mathsuivi-eval-`), randomBytes(32));
+const app = createApp({ db: handle.db, env, mailer: new ConsoleMailer(true), llm, files });
 const server = app.listen(0);
 const base = `http://127.0.0.1:${(server.address() as { port: number }).port}/api`;
 

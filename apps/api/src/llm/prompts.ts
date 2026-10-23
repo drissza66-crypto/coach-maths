@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
  */
 const cache = new Map<string, string>();
 
-export const PROMPT_NAMES = ['tutor.system', 'classify.exercise'] as const;
+export const PROMPT_NAMES = ['tutor.system', 'classify.exercise', 'ocr.image'] as const;
 export type PromptName = (typeof PROMPT_NAMES)[number];
 
 function load(name: PromptName): string {

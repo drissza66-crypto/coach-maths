@@ -1,4 +1,9 @@
+import { randomBytes } from 'node:crypto';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import request from 'supertest';
+import { EncryptedStore } from '../src/storage/encrypted-store.js';
 import { createApp } from '../src/app.js';
 import { parseEnv } from '../src/config/env.js';
 import { openDatabase } from '../src/db/client.js';
@@ -28,9 +33,20 @@ export async function setup(overrides: Record<string, string> = {}, provider?: L
   const llm = provider
     ? new ResilientProvider(provider, null, { maxRetries: 0, baseDelayMs: 0, maxDelayMs: 0, log: dbCallLogger(handle.db) })
     : createLLM(env, dbCallLogger(handle.db));
-  const deps = { db: handle.db, env, mailer, llm };
+  const filesDir = await mkdtemp(join(tmpdir(), 'mathsuivi-test-'));
+  const files = new EncryptedStore(filesDir, randomBytes(32));
+  const deps = { db: handle.db, env, mailer, llm, files };
   const app = createApp(deps);
-  return { app, deps, mailer, close: () => handle.close() };
+  return {
+    app,
+    deps,
+    mailer,
+    filesDir,
+    close: async () => {
+      await handle.close();
+      await rm(filesDir, { recursive: true, force: true });
+    },
+  };
 }
 
 type App = Awaited<ReturnType<typeof setup>>['app'];

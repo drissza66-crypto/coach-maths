@@ -7,6 +7,7 @@ import { hashPin, randomClassCode, randomPin } from '../../lib/crypto.js';
 import { badRequest, notFound } from '../../lib/http.js';
 import { isUniqueViolation } from '../auth/service.js';
 import { deleteUser, setIaConsent, usersWithIaConsent } from '../privacy/service.js';
+import { removeFilesWhere } from '../documents/service.js';
 
 const uuid = z.string().uuid();
 
@@ -174,6 +175,7 @@ export async function deleteApprenti(deps: AppDeps, user: User, classId: string,
  */
 export async function deleteClass(deps: AppDeps, user: User, classId: string) {
   const cls = await getOwnedClass(deps, user, classId);
+  await removeFilesWhere(deps, { classId: cls.id });
   await deps.db.transaction(async (tx) => {
     const members = await tx
       .select({ userId: classMembers.userId })

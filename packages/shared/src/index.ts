@@ -307,6 +307,39 @@ export type TutorStreamEvent =
     }
   | { type: 'erreur'; message: string; reessayerDans?: number };
 
+// ── Documents ────────────────────────────────────────────────────────────────
+
+export const ACCEPTED_UPLOADS = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'] as const;
+
+export const documentUploadSchema = z.object({
+  classId: z.string().uuid('Classe invalide.'),
+  titre: z.string().trim().min(2, 'Donnez un titre au cours.').max(80, 'Titre trop long.'),
+});
+
+export interface CourseDocument {
+  id: string;
+  titre: string;
+  nomFichier: string;
+  mime: string;
+  taille: number;
+  nbPages: number;
+  nbCaracteres: number;
+  creeLe: string;
+  /** Date de suppression automatique. */
+  expireLe: string;
+}
+
+export interface CourseDocumentDetail extends CourseDocument {
+  /** Début du texte extrait, pour vérifier la lecture. */
+  apercu: string;
+}
+
+/** Texte lu sur la photo d'un énoncé (la photo n'est pas conservée). */
+export interface PhotoReadResult {
+  texte: string;
+  quota: Quota;
+}
+
 export interface LLMStatus {
   fournisseur: string;
   modele: string;

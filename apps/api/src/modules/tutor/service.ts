@@ -15,7 +15,10 @@ import { classMembers, classes, conversations, messages, moderationEvents, type 
 import { refundDailyMessage, type DailyQuota } from '../../llm/journal.js';
 import { LLMError } from '../../llm/errors.js';
 import { userMessageFor } from '../../llm/user-messages.js';
-import { forbidden, notFound } from '../../lib/http.js';
+import { HttpError, forbidden, notFound } from '../../lib/http.js';
+import type { ImageInput } from '../../llm/types.js';
+import { ocrImage } from '../documents/extract.js';
+import { formatExtracts, searchCourses } from '../documents/search.js';
 import { usersWithIaConsent } from '../privacy/service.js';
 import { AnswerGuard } from './answer-guard.js';
 import { detectCheat } from './cheat.js';
@@ -111,9 +114,9 @@ async function recordEvent({ db }: AppDeps, userId: string, conversationId: stri
   await db.insert(moderationEvents).values({ userId, conversationId, categorie });
 }
 
-async function promptContext(deps: AppDeps, user: User, conv: Conversation) {
+async function promptContext(deps: AppDeps, user: User, conv: Conversation, texte: string) {
   const [cls] = await deps.db
-    .select({ metier: classes.metier })
+    .select({ id: classes.id, metier: classes.metier })
     .from(classMembers)
     .innerJoin(classes, eq(classes.id, classMembers.classId))
     .where(eq(classMembers.userId, user.id))
@@ -124,11 +127,26 @@ async function promptContext(deps: AppDeps, user: User, conv: Conversation) {
     .where(eq(messages.conversationId, conv.id))
     .orderBy(desc(messages.createdAt))
     .limit(deps.env.CHAT_HISTORY_MESSAGES);
+  // RAG : passages des cours de la classe proches de l'exercice et du message.
+  const extraits = cls
+    ? formatExtracts(await searchCourses(deps.db, cls.id, `${conv.notion ?? ''} ${conv.enonce} ${texte}`))
+    : undefined;
   return {
     niveau: user.niveau ? NIVEAU_LABELS[user.niveau] : 'CAP',
     metier: cls ? METIER_LABELS[cls.metier] : 'métiers du bâtiment',
     historique: historique.reverse(),
+    extraitsCours: extraits,
   };
+}
+
+/** Lit la photo d'un énoncé (en mémoire, jamais stockée) et renvoie le texte masqué. */
+export async function readExercisePhoto(deps: AppDeps, user: User, image: ImageInput): Promise<string> {
+  try {
+    return moderateInput(await ocrImage(deps.llm, image, user.id)).texte;
+  } catch (err) {
+    if (err instanceof LLMError) throw new HttpError(503, userMessageFor(err).message);
+    throw err;
+  }
 }
 
 export interface TurnRequest {
@@ -171,7 +189,7 @@ export async function runTurn(
   if (cheat.injection) await recordEvent(deps, user.id, conv.id, 'injection');
 
   const plan = planTurn(conv, { texte, demandeIndice: req.demandeIndice, premier: req.premier, signal: cheat });
-  const ctx = await promptContext(deps, user, conv);
+  const ctx = await promptContext(deps, user, conv, texte);
   const chat = buildChatMessages(conv, plan, ctx, texte);
   const guard = new AnswerGuard(conv.reponseAttendue, [
     conv.enonce,

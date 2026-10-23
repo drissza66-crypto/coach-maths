@@ -66,6 +66,19 @@ const envSchema = z.object({
   CHAT_RETENTION_DAYS: z.coerce.number().int().positive().default(30),
   /** Messages précédents renvoyés à l'IA à chaque tour. */
   CHAT_HISTORY_MESSAGES: z.coerce.number().int().min(2).default(20),
+
+  // ── Fichiers importés ──
+  FILES_DIR: z.string().default('./.data/files'),
+  /** 32 octets en base64 (openssl rand -base64 32). Obligatoire en production. */
+  FILE_ENCRYPTION_KEY: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z
+      .string()
+      .refine((v) => Buffer.from(v, 'base64').length === 32, 'FILE_ENCRYPTION_KEY doit faire 32 octets en base64.')
+      .optional(),
+  ),
+  FILE_RETENTION_DAYS: z.coerce.number().int().positive().default(30),
+  UPLOAD_MAX_MB: z.coerce.number().positive().max(50).default(10),
   MOCK_DELAY_MS: z.coerce.number().int().min(0).default(15),
   MOCK_FAIL: z.preprocess(
     (v) => (v === '' ? undefined : v),

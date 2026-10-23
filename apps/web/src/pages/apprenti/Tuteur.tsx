@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
+import { useCallback, useEffect, useId, useRef, useState, type ChangeEvent, type FormEvent, type KeyboardEvent } from 'react';
 import { Link, useMatch, useNavigate } from 'react-router-dom';
 import {
   CHAPITRE_LABELS,
@@ -7,11 +7,13 @@ import {
   MAX_MESSAGE_LENGTH,
   type ConversationDetail,
   type ConversationSummary,
+  type PhotoReadResult,
   type Quota,
   type TutorMessage,
   type TutorStreamEvent,
 } from '@mathsuivi/shared';
-import { api, errorMessage } from '../../api/client';
+import { api, apiUpload, errorMessage } from '../../api/client';
+import { prepareImage } from '../../api/image';
 import { postStream } from '../../api/stream';
 import { useAuth } from '../../auth/AuthContext';
 import { Alert, Page, formatDate } from '../../components/ui';
@@ -144,6 +146,32 @@ function Chat({ detail, quota, onQuota, onStarted, onDetail, onNew }: ChatProps)
   const input = useRef<HTMLTextAreaElement>(null);
   const current = useRef(detail);
   current.current = detail;
+  const photoInput = useRef<HTMLInputElement>(null);
+  const [reading, setReading] = useState(false);
+  const [photoNotice, setPhotoNotice] = useState('');
+
+  /** Photo → texte de l'énoncé, que l'apprenti vérifie avant de commencer. */
+  async function onPhoto(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setError(null);
+    setPhotoNotice('');
+    setReading(true);
+    try {
+      const form = new FormData();
+      form.append('photo', await prepareImage(file), 'enonce.jpg');
+      const result = await apiUpload<PhotoReadResult>('/tuteur/photo', form);
+      setText(result.texte);
+      onQuota(result.quota);
+      setPhotoNotice('Voici ce que j’ai lu. Vérifie le texte, corrige-le si besoin, puis appuie sur « Commencer ».');
+      input.current?.focus();
+    } catch (err) {
+      setError({ message: errorMessage(err) });
+    } finally {
+      setReading(false);
+    }
+  }
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ block: 'end', behavior: 'smooth' });
@@ -254,9 +282,27 @@ function Chat({ detail, quota, onQuota, onStarted, onDetail, onNew }: ChatProps)
 
       {!detail && (
         <>
-          <p>Recopie l’exercice où tu bloques. Le coach ne te donne pas la réponse : il t’aide à la trouver, pas à pas.</p>
+          <p>
+            Prends ton exercice en photo, ou recopie-le. Le coach ne te donne pas la réponse : il t’aide à la trouver,
+            pas à pas.
+          </p>
+          <div className="row" style={{ marginBottom: '1rem' }}>
+            <button type="button" className="btn btn-secondary" onClick={() => photoInput.current?.click()} disabled={reading || busy}>
+              <span aria-hidden="true">📷</span> {reading ? 'Lecture de la photo…' : 'Prendre l’exercice en photo'}
+            </button>
+            <input
+              ref={photoInput}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              hidden
+              onChange={onPhoto}
+            />
+          </div>
+          {reading && <p role="status">Je lis ta photo…</p>}
+          <Alert kind="info">{photoNotice}</Alert>
           <p className="muted small">
-            📷 Photo de l’exercice : bientôt disponible. N’écris pas ton nom, ton adresse ou ton téléphone.
+            Cadre seulement l’exercice. Pas de nom, d’adresse ou de téléphone. La photo n’est pas gardée.
           </p>
         </>
       )}

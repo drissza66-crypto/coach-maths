@@ -3,6 +3,7 @@ import type { AppDeps } from '../deps.js';
 import { magicLinks } from '../db/schema.js';
 import { purgeOldCalls, purgeOldUsage } from '../llm/journal.js';
 import { purgeOldConversations, purgeOldModerationEvents } from '../modules/tutor/service.js';
+import { purgeDocuments } from '../modules/documents/service.js';
 import { purgeExpiredSessions } from '../modules/auth/session.js';
 
 /**
@@ -16,4 +17,5 @@ export async function purgeExpired(deps: AppDeps) {
   await purgeOldUsage(deps.db);
   await purgeOldConversations(deps);
   await purgeOldModerationEvents(deps);
+  await purgeDocuments(deps);
 }

@@ -3,12 +3,14 @@ import type { Db } from './db/client.js';
 import type { User } from './db/schema.js';
 import type { ResilientProvider } from './llm/resilient.js';
 import type { Mailer } from './mail/mailer.js';
+import type { EncryptedStore } from './storage/encrypted-store.js';
 
 export interface AppDeps {
   db: Db;
   env: Env;
   mailer: Mailer;
   llm: ResilientProvider;
+  files: EncryptedStore;
 }
 
 declare global {

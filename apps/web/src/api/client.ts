@@ -29,5 +29,18 @@ export async function api<T = void>(path: string, method: Method = 'GET', body?:
   return data as T;
 }
 
+/** Envoi d'un fichier (multipart). Le navigateur pose lui-même l'en-tête Content-Type. */
+export async function apiUpload<T>(path: string, form: FormData): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(`/api${path}`, { method: 'POST', credentials: 'same-origin', body: form });
+  } catch {
+    throw new ApiError(0, 'Pas de connexion au serveur. Vérifie ta connexion internet.');
+  }
+  const data = await res.json().catch(() => null);
+  if (!res.ok) throw new ApiError(res.status, data?.error ?? 'L’envoi a échoué. Réessaie dans un instant.');
+  return data as T;
+}
+
 export const errorMessage = (err: unknown) =>
   err instanceof Error ? err.message : 'Une erreur est survenue.';

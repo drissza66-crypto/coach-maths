@@ -11,6 +11,7 @@ import { api, errorMessage } from '../../api/client';
 import { useAuth } from '../../auth/AuthContext';
 import { Alert, Field, Page, formatDate, useAsyncAction } from '../../components/ui';
 import { ClassForm } from './ClassForm';
+import { CoursClasse } from './CoursClasse';
 
 type Act = <T>(action: () => Promise<T>, success?: ReactNode | ((result: T) => ReactNode)) => Promise<void>;
 
@@ -135,6 +136,8 @@ export function ClasseDetail() {
           </ul>
         )}
       </section>
+
+      <CoursClasse classId={cls.id} />
 
       <section className="card">
         <details>

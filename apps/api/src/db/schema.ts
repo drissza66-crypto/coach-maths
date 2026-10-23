@@ -1,5 +1,7 @@
+import { sql } from 'drizzle-orm';
 import {
   boolean,
+  customType,
   index,
   integer,
   pgEnum,
@@ -205,6 +207,56 @@ export const moderationEvents = pgTable(
   (t) => [index('moderation_events_user_idx').on(t.userId)],
 );
 
+// ── Documents de cours (RAG) ─────────────────────────────────────────────────
+
+const tsvector = customType<{ data: string }>({ dataType: () => 'tsvector' });
+
+/**
+ * Cours importés par le formateur pour une classe. Le fichier est chiffré sur disque
+ * (storage_key) et supprimé avec la ligne à expires_at. Les photos d'énoncé des
+ * apprentis ne sont jamais stockées : lues en mémoire, puis oubliées.
+ */
+export const documents = pgTable(
+  'documents',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    ownerId: uuid('owner_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    classId: uuid('class_id')
+      .notNull()
+      .references(() => classes.id, { onDelete: 'cascade' }),
+    titre: text('titre').notNull(),
+    nomFichier: text('nom_fichier').notNull(),
+    mime: text('mime').notNull(),
+    taille: integer('taille').notNull(),
+    sha256: text('sha256').notNull(),
+    storageKey: text('storage_key').notNull().unique(),
+    nbPages: integer('nb_pages').notNull(),
+    nbCaracteres: integer('nb_caracteres').notNull(),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+    expiresAt: timestamptz('expires_at').notNull(),
+  },
+  (t) => [index('documents_class_idx').on(t.classId), uniqueIndex('documents_class_sha_idx').on(t.classId, t.sha256)],
+);
+
+export const documentChunks = pgTable(
+  'document_chunks',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    documentId: uuid('document_id')
+      .notNull()
+      .references(() => documents.id, { onDelete: 'cascade' }),
+    idx: integer('idx').notNull(),
+    page: integer('page').notNull(),
+    contenu: text('contenu').notNull(),
+    /** Index plein texte en français, calculé par PostgreSQL. */
+    tsv: tsvector('tsv').generatedAlwaysAs(sql`to_tsvector('french', "contenu")`),
+  },
+  (t) => [index('document_chunks_doc_idx').on(t.documentId), index('document_chunks_tsv_idx').using('gin', t.tsv)],
+);
+
 export type User = typeof users.$inferSelect;
+export type DocumentRow = typeof documents.$inferSelect;
 export type Conversation = typeof conversations.$inferSelect;
 export type Class = typeof classes.$inferSelect;
