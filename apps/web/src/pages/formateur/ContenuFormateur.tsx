@@ -112,6 +112,11 @@ export function ContenuFormateur() {
           >
             {contenu.publie ? 'Dépublier' : 'Publier pour la classe'}
           </button>
+          {contenu.type === 'quiz' && (
+            <Link to={`/formateur/contenus/${contenu.id}/resultats`} className="btn btn-secondary">
+              Résultats des apprentis
+            </Link>
+          )}
           <button
             className="btn btn-danger"
             disabled={busy}

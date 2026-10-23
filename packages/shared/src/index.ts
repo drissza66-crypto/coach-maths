@@ -194,6 +194,8 @@ export interface ClassCheckResult {
 export interface FormateurClass extends ClassSummary {
   code: string;
   nbApprentis: number;
+  /** Apprentis venus sur l'application ces 7 derniers jours. */
+  actifs7j: number;
   creeLe: string;
 }
 
@@ -461,6 +463,102 @@ export interface QuizCorrection {
   score: number;
   total: number;
   questions: { enonce: string; choix: string[]; reponse: number; bonne_reponse: number; correct: boolean; explication: string }[];
+}
+
+// ── Tableau de bord formateur ────────────────────────────────────────────────
+
+export const PERIODES = [7, 30] as const;
+export type Periode = (typeof PERIODES)[number];
+
+export const MASTERY_STATUSES = ['acquis', 'en_cours', 'a_retravailler', 'peu_de_donnees'] as const;
+export type MasteryStatus = (typeof MASTERY_STATUSES)[number];
+export const MASTERY_LABELS: Record<MasteryStatus, string> = {
+  acquis: 'Acquis',
+  en_cours: 'En cours',
+  a_retravailler: 'À retravailler',
+  peu_de_donnees: 'Pas assez de données',
+};
+
+/**
+ * Règle de maîtrise, la même partout (tableau de bord, suivi de l'apprenti) :
+ * maîtrise = (bonnes réponses aux quiz + exercices trouvés avec le coach) / total,
+ * un exercice trouvé après un indice comptant un peu moins (−0,2 par indice).
+ * Moins de 3 éléments : pas assez de données pour conclure.
+ */
+export const MASTERY_RULE = { minElements: 3, acquis: 0.75, enCours: 0.5, penaliteIndice: 0.2 } as const;
+
+export function masteryStatus(maitrise: number | null, elements: number): MasteryStatus {
+  if (maitrise === null || elements < MASTERY_RULE.minElements) return 'peu_de_donnees';
+  if (maitrise >= MASTERY_RULE.acquis) return 'acquis';
+  if (maitrise >= MASTERY_RULE.enCours) return 'en_cours';
+  return 'a_retravailler';
+}
+
+export interface ChapterStat {
+  chapitre: Chapitre;
+  exercices: number;
+  resolus: number;
+  indicesMoyens: number | null;
+  reponsesQuiz: number;
+  reussiteQuiz: number | null;
+  maitrise: number | null;
+  statut: MasteryStatus;
+}
+
+export interface ApprentiStat {
+  id: string;
+  pseudo: string;
+  derniereVisite: string | null;
+  exercices: number;
+  resolus: number;
+  quizPasses: number;
+  moyenneQuiz: number | null;
+  /** Demandes de réponse directe repérées (compteur, sans le texte). */
+  demandesReponse: number;
+  aRetravailler: Chapitre[];
+}
+
+export interface QuizStat {
+  id: string;
+  titre: string;
+  chapitre: Chapitre | null;
+  publie: boolean;
+  participants: number;
+  tentatives: number;
+  moyenne: number | null;
+}
+
+export interface ClassDashboard {
+  periodeJours: Periode;
+  resume: {
+    apprentis: number;
+    actifs: number;
+    exercices: number;
+    exercicesResolus: number;
+    quizPasses: number;
+    moyenneQuiz: number | null;
+  };
+  chapitres: ChapterStat[];
+  apprentis: ApprentiStat[];
+  quiz: QuizStat[];
+}
+
+export interface QuizResults {
+  id: string;
+  titre: string;
+  chapitre: Chapitre | null;
+  participants: number;
+  moyenne: number | null;
+  questions: {
+    index: number;
+    enonce: string;
+    bonneReponse: string;
+    reponses: number;
+    reussite: number | null;
+    /** Mauvaise réponse la plus choisie : souvent l'erreur typique à retravailler. */
+    erreurFrequente: { choix: string; fois: number } | null;
+  }[];
+  apprentis: { id: string; pseudo: string; meilleurScore: number; total: number; tentatives: number; derniereTentative: string }[];
 }
 
 export interface LLMStatus {

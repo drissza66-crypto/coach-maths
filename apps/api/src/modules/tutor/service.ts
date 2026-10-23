@@ -1,4 +1,4 @@
-import { and, desc, eq, lt } from 'drizzle-orm';
+import { and, desc, eq, lt, sql } from 'drizzle-orm';
 import {
   METIER_LABELS,
   NIVEAU_LABELS,
@@ -73,7 +73,12 @@ export async function listConversations({ db }: AppDeps, user: User): Promise<Co
   const rows = await db
     .select()
     .from(conversations)
-    .where(eq(conversations.userId, user.id))
+    .where(
+      and(
+        eq(conversations.userId, user.id),
+        sql`exists (select 1 from messages m where m.conversation_id = ${conversations.id})`,
+      ),
+    )
     .orderBy(desc(conversations.updatedAt))
     .limit(30);
   return rows.map(toSummary);
@@ -156,6 +161,8 @@ export interface TurnRequest {
 }
 
 /**
+ * Renvoie false si l'IA n'a pas répondu (rien n'a été enregistré).
+ *
  * Un tour de conversation : modération, plan (étape, indice, consigne), appel à l'IA
  * en streaming à travers answerGuard, puis enregistrement. Les messages ne sont
  * enregistrés qu'en cas de succès : en cas de panne, l'apprenti garde son texte
@@ -169,7 +176,7 @@ export async function runTurn(
   quota: DailyQuota,
   emit: (event: TutorStreamEvent) => void,
   signal: AbortSignal,
-) {
+): Promise<boolean> {
   const debut = new Date();
   const moderation = moderateInput(req.texte);
   const texte = moderation.texte;
@@ -181,7 +188,7 @@ export async function runTurn(
     emit({ type: 'texte', texte: moderation.reponse });
     const saved = await persist(deps, conv, texte, moderation.reponse, conv, debut);
     emit({ type: 'fin', ...saved, quota: toQuota({ ...quota, used: Math.max(0, quota.used - 1) }) });
-    return;
+    return true;
   }
 
   const cheat = detectCheat(texte);
@@ -217,12 +224,13 @@ export async function runTurn(
     await refundDailyMessage(deps.db, user.id);
     const { message, retryAfterSeconds } = userMessageFor(err);
     emit({ type: 'erreur', message, reessayerDans: retryAfterSeconds });
-    return;
+    return false;
   }
 
   if (guard.blocked) await recordEvent(deps, user.id, conv.id, 'fuite_bloquee');
   const saved = await persist(deps, conv, texte, reponse.trim(), plan, debut);
   emit({ type: 'fin', ...saved, quota: toQuota(quota) });
+  return true;
 }
 
 async function persist(

@@ -10,6 +10,8 @@ import { ConnexionApprenti } from './pages/apprenti/ConnexionApprenti';
 import { Tuteur } from './pages/apprenti/Tuteur';
 import { Reviser, Revision } from './pages/apprenti/Reviser';
 import { ContenuFormateur } from './pages/formateur/ContenuFormateur';
+import { ResultatsQuiz } from './pages/formateur/ResultatsQuiz';
+import { TableauDeBord } from './pages/formateur/TableauDeBord';
 import { ClasseDetail } from './pages/formateur/ClasseDetail';
 import { Classes } from './pages/formateur/Classes';
 import { ConnexionFormateur } from './pages/formateur/ConnexionFormateur';
@@ -45,6 +47,8 @@ export function App() {
           <Route path="formateur" element={<Classes />} />
           <Route path="formateur/classes/:id" element={<ClasseDetail />} />
           <Route path="formateur/contenus/:id" element={<ContenuFormateur />} />
+          <Route path="formateur/contenus/:id/resultats" element={<ResultatsQuiz />} />
+          <Route path="formateur/classes/:id/tableau-de-bord" element={<TableauDeBord />} />
         </Route>
 
         <Route element={<RequireRole roles={['apprenti', 'formateur', 'admin']} />}>

@@ -1,7 +1,8 @@
 import { Router, type Response } from 'express';
 import { sendMessageSchema, startConversationSchema, type PhotoReadResult, type TutorStreamEvent } from '@mathsuivi/shared';
 import type { AppDeps } from '../../deps.js';
-import type { Conversation, User } from '../../db/schema.js';
+import { eq } from 'drizzle-orm';
+import { conversations, type Conversation, type User } from '../../db/schema.js';
 import { consumeDailyMessage, getDailyUsage, refundDailyMessage } from '../../llm/journal.js';
 import { sniffMime } from '../documents/extract.js';
 import { singleFile } from '../documents/upload.js';
@@ -57,12 +58,15 @@ export function tutorRouter(deps: AppDeps) {
     const quota = await reserve(user);
     const { emit, signal, end } = openStream(res);
     if (isNew) emit({ type: 'debut', conversation: toSummary(conv) });
+    let ok = false;
     try {
-      await runTurn(deps, user, conv, turn, quota, emit, signal);
+      ok = await runTurn(deps, user, conv, turn, quota, emit, signal);
     } catch (err) {
       console.error('[tuteur] erreur inattendue :', (err as Error)?.message);
       emit({ type: 'erreur', message: 'Oups, une erreur est survenue. Réessaie dans un instant.' });
     } finally {
+      // Premier message sans réponse : on ne garde pas une conversation vide.
+      if (isNew && !ok) await deps.db.delete(conversations).where(eq(conversations.id, conv.id)).catch(() => undefined);
       end();
     }
   }

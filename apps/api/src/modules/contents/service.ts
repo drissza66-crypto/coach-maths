@@ -288,7 +288,8 @@ export async function submitQuizAttempt(
     userId: user.id,
     score,
     total: questions.length,
-    reponses: questions.map((q) => ({ reponse: q.reponse, correct: q.correct })),
+    // L'énoncé est gardé : les statistiques restent justes si le formateur retire une question ensuite.
+    reponses: questions.map((q) => ({ enonce: q.enonce, reponse: q.reponse, correct: q.correct })),
     dureeSecondes: input.dureeSecondes,
   });
   return { score, total: questions.length, questions };

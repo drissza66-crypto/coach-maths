@@ -201,6 +201,15 @@ describe('sécurité, modération et limites', () => {
     expect(detail.body.messages).toHaveLength(2);
   });
 
+  it('premier message sans réponse : pas de conversation vide gardée', async () => {
+    const before = (await truelle.get('/api/tuteur/conversations')).body.length;
+    leaky.fail = 'unavailable';
+    const r = await start();
+    expect(r.erreur).toBeDefined();
+    expect((await truelle.get('/api/tuteur/conversations')).body).toHaveLength(before);
+    await truelle.get(`/api/tuteur/conversations/${r.debut!.conversation.id}`).expect(404);
+  });
+
   it('limite quotidienne : refus clair avant tout appel', async () => {
     const small = await setup({ DAILY_MESSAGE_LIMIT: '2' }, new LeakyProvider());
     const agent = await apprentiAgent(small.app, 'Niveau', DEMO.apprentis[1]!.pin);

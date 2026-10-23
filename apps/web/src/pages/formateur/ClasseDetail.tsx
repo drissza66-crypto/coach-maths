@@ -79,6 +79,11 @@ export function ClasseDetail() {
           </>
         )}
       </p>
+      <p>
+        <Link to={`/formateur/classes/${cls.id}/tableau-de-bord`} className="btn">
+          📊 Tableau de bord de la classe
+        </Link>
+      </p>
 
       <div ref={messages} tabIndex={-1}>
         <Alert kind="error">{error}</Alert>

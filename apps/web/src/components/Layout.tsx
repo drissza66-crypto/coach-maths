@@ -63,10 +63,22 @@ export function Layout() {
   );
 }
 
+function ServerUnreachable({ onRetry }: { onRetry(): Promise<void> }) {
+  return (
+    <div className="alert alert-error" role="alert">
+      <p>Le serveur ne répond pas pour le moment. Vérifie ta connexion, puis réessaie.</p>
+      <button className="btn btn-secondary btn-small" onClick={() => onRetry()}>
+        Réessayer
+      </button>
+    </div>
+  );
+}
+
 export function RequireRole({ roles }: { roles: Role[] }) {
-  const { me, loading } = useAuth();
+  const { me, loading, unreachable, refresh } = useAuth();
   const location = useLocation();
   if (loading) return <p role="status">Chargement…</p>;
+  if (!me && unreachable) return <ServerUnreachable onRetry={refresh} />;
   if (!me) return <Navigate to="/" replace />;
   if (!roles.includes(me.role)) return <Navigate to={homePath(me)} replace />;
   if (me.role === 'apprenti' && me.doitChangerPin && location.pathname !== '/apprenti/code') {

@@ -3,9 +3,9 @@
 Application web gratuite d'appui en mathématiques pour les apprentis de CAP
 (maçonnerie, menuiserie, plomberie…). Le tuteur guide sans donner les réponses.
 
-> **État : étapes 1 à 5 sur 7 — comptes et classes, couche fournisseur d'IA, chat tuteur,
-> import de documents et OCR, fiches/quiz/cartes mémoire.** Le tableau de bord formateur et
-> le suivi des progrès arrivent ensuite.
+> **État : étapes 1 à 6 sur 7 — comptes et classes, couche fournisseur d'IA, chat tuteur,
+> import de documents et OCR, fiches/quiz/cartes mémoire, tableau de bord formateur.**
+> Le suivi des progrès côté apprenti arrive ensuite.
 
 ## Démarrer en local
 
@@ -189,6 +189,25 @@ premier), typographie française, limite de `GENERATION_DAILY_LIMIT` génératio
 et par formateur. Prompts : `src/prompts/generate.{fiche,quiz,flashcards}.md`. En mode
 Mock, un contenu de démonstration réaliste (aires et carrelage, calculs vérifiés) est
 utilisé.
+
+## Tableau de bord formateur
+
+Page de la classe → « Tableau de bord de la classe » (7 ou 30 derniers jours) :
+- **Indicateurs** : apprentis actifs, exercices faits avec le coach (et trouvés), quiz passés,
+  réussite moyenne aux quiz.
+- **Maîtrise par notion**, de la plus fragile à la plus solide, avec un statut écrit
+  (Acquis / En cours / À retravailler / Pas assez de données). Règle unique, dans
+  `packages/shared` (`MASTERY_RULE`) : bonnes réponses aux quiz + exercices trouvés avec le
+  coach (−20 % par indice), sur le total ; acquis ≥ 75 %, en cours ≥ 50 % ; moins de 3
+  éléments → pas de conclusion. Un exercice ouvert depuis moins d'une heure n'est pas compté.
+- **Apprentis** : dernière visite, exercices trouvés, quiz et moyenne, nombre de demandes de
+  réponse directe, notions à retravailler.
+- **Résultats d'un quiz** : réussite par question (les moins réussies d'abord), l'erreur la
+  plus choisie (souvent l'erreur typique à reprendre en classe), scores par apprenti.
+
+**Le formateur voit des compteurs et des taux, jamais ce que les apprentis écrivent au
+coach.** Les signaux de mal-être détectés par la modération ne sont pas affichés : les
+remonter à un adulte référent est une décision à prendre avec le CFA et son DPO.
 
 ## Données personnelles (RGPD)
 

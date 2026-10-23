@@ -1,4 +1,4 @@
-import { and, count, desc, eq, inArray, ne } from 'drizzle-orm';
+import { and, count, desc, eq, gte, inArray, ne } from 'drizzle-orm';
 import { z } from 'zod';
 import type { ClassCreate, ClassMember, FormateurClass, FormateurClassDetail } from '@mathsuivi/shared';
 import type { AppDeps } from '../../deps.js';
@@ -11,7 +11,7 @@ import { removeFilesWhere } from '../documents/service.js';
 
 const uuid = z.string().uuid();
 
-function toFormateurClass(cls: Class, nbApprentis: number): FormateurClass {
+function toFormateurClass(cls: Class, nbApprentis: number, actifs7j = 0): FormateurClass {
   return {
     id: cls.id,
     nom: cls.nom,
@@ -20,6 +20,7 @@ function toFormateurClass(cls: Class, nbApprentis: number): FormateurClass {
     archivee: cls.archivedAt !== null,
     code: cls.code,
     nbApprentis,
+    actifs7j,
     creeLe: cls.createdAt.toISOString(),
   };
 }
@@ -69,7 +70,16 @@ export async function listClasses({ db }: AppDeps, user: User): Promise<Formateu
     .where(eq(classes.formateurId, user.id))
     .groupBy(classes.id)
     .orderBy(desc(classes.createdAt));
-  return rows.map((r) => toFormateurClass(r.cls, r.nb));
+  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const actifs = await db
+    .select({ classId: classMembers.classId, n: count() })
+    .from(classMembers)
+    .innerJoin(users, eq(users.id, classMembers.userId))
+    .innerJoin(classes, eq(classes.id, classMembers.classId))
+    .where(and(eq(classes.formateurId, user.id), gte(users.lastSeenAt, since)))
+    .groupBy(classMembers.classId);
+  const actifsById = new Map(actifs.map((a) => [a.classId, a.n]));
+  return rows.map((r) => toFormateurClass(r.cls, r.nb, actifsById.get(r.cls.id) ?? 0));
 }
 
 export async function createClass({ db }: AppDeps, user: User, input: ClassCreate): Promise<FormateurClass> {

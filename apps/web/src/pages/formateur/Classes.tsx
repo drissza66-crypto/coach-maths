@@ -77,6 +77,7 @@ function ClassList({ classes }: { classes: FormateurClass[] }) {
           </h2>
           <p className="muted small">
             {METIER_LABELS[c.metier]} · {NIVEAU_LABELS[c.niveau]} · {c.nbApprentis} apprenti{c.nbApprentis > 1 ? 's' : ''}
+            {c.nbApprentis > 0 && ` · ${c.actifs7j} actif${c.actifs7j > 1 ? 's' : ''} cette semaine`}
           </p>
           <p style={{ marginBottom: 0 }}>
             Code : <span className="code-display">{formatClassCode(c.code)}</span>
