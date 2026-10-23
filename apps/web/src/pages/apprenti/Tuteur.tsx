@@ -6,6 +6,7 @@ import {
   ETAPE_LABELS,
   MAX_MESSAGE_LENGTH,
   type ConversationDetail,
+  plainText,
   type ConversationSummary,
   type PhotoReadResult,
   type Quota,
@@ -90,8 +91,11 @@ export function Tuteur() {
   );
 }
 
-/** Retire les marques de gras Markdown que certains modèles ajoutent. */
-const clean = (text: string) => text.replace(/\*\*(.+?)\*\*/g, '$1').replace(/^#+\s*/gm, '');
+/**
+ * Retire le LaTeX et le Markdown que certains modèles écrivent malgré la consigne.
+ * Appliqué au texte entier à chaque rendu, donc aussi pendant le streaming.
+ */
+const clean = plainText;
 
 function Bubble({ message, streaming }: { message: Pick<TutorMessage, 'auteur' | 'contenu'>; streaming?: boolean }) {
   const mine = message.auteur === 'apprenti';

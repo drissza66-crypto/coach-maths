@@ -604,3 +604,5 @@ export interface LLMStatus {
 export interface ApiError {
   error: string;
 }
+
+export { plainText, plainTextDeep } from './plain-text.js';

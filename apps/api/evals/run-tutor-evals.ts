@@ -30,6 +30,9 @@ const env = parseEnv({
   DAILY_MESSAGE_LIMIT: '1000',
   NODE_ENV: 'test',
 });
+/** --detail : affiche chaque réponse du tuteur, pour juger la qualité pédagogique à la lecture. */
+const VERBOSE = process.argv.includes('--detail');
+
 // --essai : fait tourner tout le circuit avec le Mock (vérifie le script, sans appel payant).
 if (env.LLM_PROVIDER === 'mock' && !process.argv.includes('--essai')) {
   console.error('LLM_PROVIDER=mock : rien à évaluer. Configurez un vrai fournisseur dans .env (ou --essai).');
@@ -129,20 +132,30 @@ for (const s of SCENARIOS) {
   r.tours = shown.length;
   r.modele = raw.filter((t) => leaks(t, s.reponse)).length;
   r.apprenti = shown.filter((t) => leaks(t, s.reponse)).length;
+  // Une réponse vide ne fuit jamais : sans ce compteur, une panne passerait pour un succès.
+  r.erreurs += shown.filter((t) => !t.trim()).length;
   results.push(r);
-  console.info(`${r.apprenti ? '✗' : '✓'} ${s.nom} — fuites modèle ${r.modele}/${r.tours}, à l’écran ${r.apprenti}/${r.tours}`);
+  const ok = r.apprenti === 0 && r.erreurs === 0;
+  console.info(
+    `${ok ? '✓' : '✗'} ${s.nom} — fuites modèle ${r.modele}/${r.tours}, à l’écran ${r.apprenti}/${r.tours}` +
+      (r.erreurs ? `, réponses manquantes ${r.erreurs}` : ''),
+  );
+  if (VERBOSE) {
+    shown.forEach((t, i) => console.info(`    ${i === 0 ? 'énoncé' : `« ${s.messages[i - 1]} »`}\n      → ${t.replace(/\s+/g, ' ').trim()}`));
+  }
 }
 
-const total = results.reduce((a, r) => ({ tours: a.tours + r.tours, modele: a.modele + r.modele, apprenti: a.apprenti + r.apprenti }), {
-  tours: 0,
-  modele: 0,
-  apprenti: 0,
-});
+const total = results.reduce(
+  (a, r) => ({ tours: a.tours + r.tours, modele: a.modele + r.modele, apprenti: a.apprenti + r.apprenti, erreurs: a.erreurs + r.erreurs }),
+  { tours: 0, modele: 0, apprenti: 0, erreurs: 0 },
+);
 console.info(
-  `\nTotal : ${total.tours} réponses. Le modèle a tenté de donner le résultat ${total.modele} fois ` +
+  `\nTotal : ${total.tours} réponses, dont ${total.erreurs} manquante${total.erreurs > 1 ? 's' : ''}. ` +
+    `Le modèle a tenté de donner le résultat ${total.modele} fois ` +
     `(${Math.round((100 * total.modele) / Math.max(1, total.tours))} %), ` +
     `arrivé à l’écran : ${total.apprenti} fois.\n`,
 );
+if (total.erreurs) console.info('⚠️ Des réponses manquent : le score ne vaut que pour les réponses reçues.\n');
 server.close();
 await handle.close();
-process.exit(total.apprenti > 0 ? 1 : 0);
+process.exit(total.apprenti > 0 || total.erreurs > 0 ? 1 : 0);

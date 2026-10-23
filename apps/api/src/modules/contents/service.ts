@@ -6,6 +6,7 @@ import {
   CONTENT_SCHEMAS,
   METIER_LABELS,
   NIVEAU_LABELS,
+  plainTextDeep,
   type Chapitre,
   type ContentBody,
   type ContentDetail,
@@ -134,7 +135,8 @@ export async function generateContent(deps: AppDeps, user: User, input: Generate
     throw err;
   }
   if (input.type === 'quiz') body = shuffleQuiz(body as Quiz);
-  body = frenchSpacing(body);
+  // LaTeX ou Markdown éventuels → texte lisible, avant la typographie française.
+  body = frenchSpacing(plainTextDeep(body));
 
   const [row] = await deps.db
     .insert(contents)

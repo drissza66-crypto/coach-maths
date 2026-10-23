@@ -146,7 +146,14 @@ n'arrive jamais à l'écran (découpé en morceaux, écrit à l'anglaise, etc.).
 `npm run eval:tutor` rejoue 10 scénarios d'apprentis qui insistent ou contournent les
 règles contre le **vrai** fournisseur de `.env`. Il mesure le taux de tentatives du
 modèle et vérifie que rien n'arrive à l'écran (≈ 40 appels payants, données fictives).
-`npm run eval:tutor -- --essai` vérifie le script en mode Mock.
+`npm run eval:tutor -- --essai` vérifie le script en mode Mock ; `-- --detail` affiche chaque
+réponse du tuteur pour juger la qualité pédagogique à la lecture. Une réponse manquante (panne,
+quota) fait échouer l'évaluation : elle ne passe plus pour un succès.
+
+**Affichage** : les modèles écrivent parfois du LaTeX ou du Markdown malgré la consigne
+(`\( 4,5 \times 3,2 \)`, tableaux, `**gras**`). `plainText` (`packages/shared`) le transforme
+en texte lisible, dans le chat et dans les contenus générés. `answerGuard` vérifie le texte
+**tel qu'il sera affiché** : un résultat écrit `14{,}4` en LaTeX est bloqué comme `14,4`.
 
 ## Import de documents et OCR
 

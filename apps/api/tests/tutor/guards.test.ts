@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Conversation } from '../../src/db/schema.js';
+import { plainText } from '@mathsuivi/shared';
 import { AnswerGuard, GUARD_REPLACEMENT } from '../../src/modules/tutor/answer-guard.js';
 import { detectCheat } from '../../src/modules/tutor/cheat.js';
 import { MASK, REPONSE_DETRESSE, moderateInput } from '../../src/modules/tutor/moderation.js';
@@ -37,9 +38,12 @@ describe('answerGuard : jamais le résultat final', () => {
     '4,5 × 3,2 = 14,40\nC’est la surface.',
     'Ça fait 14,4.',
     'Réponse :14,4',
+    // LaTeX : la virgule décimale s'écrit {,} et s'afficherait « 14,4 » après nettoyage.
+    'Donc \\( 4,5 \\times 3,2 = 14{,}4 \\text{ m}^2 \\). Bravo.',
+    'Aire : \\(14.4\\) m². Ok ?',
   ])('bloque « %s »', (text) => {
     const out = stream(guard(), text);
-    expect(extractNumbers(out)).not.toContain(14.4);
+    expect(extractNumbers(plainText(out))).not.toContain(14.4);
     expect(out).toContain(GUARD_REPLACEMENT);
   });
 

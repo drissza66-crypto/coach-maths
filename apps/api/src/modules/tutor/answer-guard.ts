@@ -1,3 +1,4 @@
+import { plainText } from '@mathsuivi/shared';
 import { containsNumber, extractNumbers } from './numbers.js';
 
 export const GUARD_REPLACEMENT =
@@ -22,7 +23,7 @@ export class AnswerGuard {
    * @param allowed   nombres que l'apprenti a déjà vus ou écrits (énoncé, ses messages)
    */
   constructor(expected: string | null, allowed: string[]) {
-    const known = allowed.flatMap(extractNumbers);
+    const known = allowed.flatMap((text) => extractNumbers(plainText(text)));
     this.targets = expected ? extractNumbers(expected).filter((n) => !containsNumber(known, n)) : [];
   }
 
@@ -57,7 +58,8 @@ export class AnswerGuard {
     return text
       .split(/(?<=[.!?…:;]\s|\n)/)
       .map((sentence) => {
-        if (!this.targets.some((t) => containsNumber(extractNumbers(sentence), t))) return sentence;
+        // On vérifie le texte tel que l'apprenti le verra : « 14{,}4 » en LaTeX s'affiche « 14,4 ».
+        if (!this.targets.some((t) => containsNumber(extractNumbers(plainText(sentence)), t))) return sentence;
         this.blocked++;
         if (this.replaced) return '';
         this.replaced = true;
