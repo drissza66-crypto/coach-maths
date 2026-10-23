@@ -4,6 +4,7 @@ import {
   customType,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
@@ -12,7 +13,7 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
-import { CONSENT_GIVERS, CONSENT_TYPES, ETAPES, METIERS, NIVEAUX, ROLES } from '@mathsuivi/shared';
+import { CONSENT_GIVERS, CONSENT_TYPES, CONTENT_TYPES, ETAPES, METIERS, NIVEAUX, ROLES } from '@mathsuivi/shared';
 
 const timestamptz = (name: string) => timestamp(name, { withTimezone: true });
 
@@ -256,7 +257,58 @@ export const documentChunks = pgTable(
   (t) => [index('document_chunks_doc_idx').on(t.documentId), index('document_chunks_tsv_idx').using('gin', t.tsv)],
 );
 
+// ── Fiches, quiz, flashcards ─────────────────────────────────────────────────
+
+export const contentTypeEnum = pgEnum('content_type', CONTENT_TYPES);
+
+/** Contenus générés par l'IA, relus par le formateur, puis publiés pour la classe. */
+export const contents = pgTable(
+  'contents',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    authorId: uuid('author_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    classId: uuid('class_id')
+      .notNull()
+      .references(() => classes.id, { onDelete: 'cascade' }),
+    /** Le cours source peut expirer : le contenu généré reste. */
+    sourceDocumentId: uuid('source_document_id').references(() => documents.id, { onDelete: 'set null' }),
+    sourceTitre: text('source_titre'),
+    type: contentTypeEnum('type').notNull(),
+    chapitre: text('chapitre'),
+    notion: text('notion'),
+    titre: text('titre').notNull(),
+    body: jsonb('body').notNull(),
+    publishedAt: timestamptz('published_at'),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+    updatedAt: timestamptz('updated_at').notNull().defaultNow(),
+  },
+  (t) => [index('contents_class_idx').on(t.classId)],
+);
+
+export const quizAttempts = pgTable(
+  'quiz_attempts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    contentId: uuid('content_id')
+      .notNull()
+      .references(() => contents.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    score: integer('score').notNull(),
+    total: integer('total').notNull(),
+    /** Réponse choisie par question (-1 = sans réponse) et justesse. */
+    reponses: jsonb('reponses').notNull(),
+    dureeSecondes: integer('duree_secondes'),
+    createdAt: timestamptz('created_at').notNull().defaultNow(),
+  },
+  (t) => [index('quiz_attempts_user_idx').on(t.userId), index('quiz_attempts_content_idx').on(t.contentId)],
+);
+
 export type User = typeof users.$inferSelect;
+export type ContentRow = typeof contents.$inferSelect;
 export type DocumentRow = typeof documents.$inferSelect;
 export type Conversation = typeof conversations.$inferSelect;
 export type Class = typeof classes.$inferSelect;

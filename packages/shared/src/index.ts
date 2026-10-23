@@ -340,6 +340,129 @@ export interface PhotoReadResult {
   quota: Quota;
 }
 
+// ── Fiches, quiz, flashcards ─────────────────────────────────────────────────
+
+export const CONTENT_TYPES = ['fiche', 'quiz', 'flashcards'] as const;
+export type ContentType = (typeof CONTENT_TYPES)[number];
+export const CONTENT_TYPE_LABELS: Record<ContentType, string> = {
+  fiche: 'Fiche de révision',
+  quiz: 'Quiz (QCM)',
+  flashcards: 'Cartes mémoire',
+};
+
+const court = (max: number) => z.string().trim().min(1).max(max);
+
+export const ficheSchema = z.object({
+  titre: court(80),
+  resume: court(400),
+  points_cles: z.array(court(200)).min(2).max(6),
+  formule: court(160).nullable(),
+  exemple_btp: z.object({
+    enonce: court(400),
+    etapes: z.array(court(200)).min(1).max(6),
+    resultat: court(120),
+  }),
+  erreurs_frequentes: z.array(court(200)).min(1).max(4),
+  a_retenir: court(200),
+});
+export type Fiche = z.infer<typeof ficheSchema>;
+
+export const quizQuestionSchema = z
+  .object({
+    enonce: court(400),
+    choix: z.array(court(120)).length(4),
+    bonne_reponse: z.number().int().min(0).max(3),
+    explication: court(400),
+  })
+  .refine((q) => new Set(q.choix.map((c) => c.toLowerCase())).size === 4, {
+    message: 'Les 4 choix doivent être différents.',
+  });
+
+export const quizSchema = z.object({
+  titre: court(80),
+  questions: z.array(quizQuestionSchema).min(1).max(15),
+});
+export type Quiz = z.infer<typeof quizSchema>;
+
+export const flashcardsSchema = z.object({
+  titre: court(80),
+  cartes: z.array(z.object({ recto: court(200), verso: court(300) })).min(1).max(20),
+});
+export type Flashcards = z.infer<typeof flashcardsSchema>;
+
+export const CONTENT_SCHEMAS = { fiche: ficheSchema, quiz: quizSchema, flashcards: flashcardsSchema } as const;
+export type ContentBody = Fiche | Quiz | Flashcards;
+
+export const generateContentSchema = z
+  .object({
+    classId: z.string().uuid(),
+    type: z.enum(CONTENT_TYPES),
+    documentId: z.string().uuid().optional(),
+    chapitre: z.enum(CHAPITRES).optional(),
+    notion: z.string().trim().max(80).optional(),
+    consignes: z.string().trim().max(500).optional(),
+    nombre: z.number().int().min(3).max(15).optional(),
+  })
+  .refine((v) => v.documentId || v.notion, { message: 'Choisissez un cours ou indiquez une notion.' });
+export type GenerateContentInput = z.input<typeof generateContentSchema>;
+
+export const updateContentSchema = z.object({
+  titre: z.string().trim().min(2).max(80).optional(),
+  body: z.unknown().optional(),
+});
+
+export const quizAttemptSchema = z.object({
+  reponses: z.array(z.number().int().min(-1).max(3)).max(15),
+  dureeSecondes: z.number().int().min(0).max(24 * 3600).optional(),
+});
+
+export interface ContentSummary {
+  id: string;
+  type: ContentType;
+  titre: string;
+  chapitre: Chapitre | null;
+  notion: string | null;
+  publie: boolean;
+  nbElements: number;
+  source: string | null;
+  creeLe: string;
+}
+
+export interface ContentDetail extends ContentSummary {
+  body: ContentBody;
+}
+
+/** Quiz tel que vu par l'apprenti : sans les bonnes réponses. */
+export interface QuizForApprenti {
+  titre: string;
+  questions: { enonce: string; choix: string[] }[];
+}
+
+export interface RevisionItem {
+  id: string;
+  type: ContentType;
+  titre: string;
+  chapitre: Chapitre | null;
+  nbElements: number;
+  publieLe: string;
+  /** Quiz : meilleur score de l'apprenti. */
+  meilleurScore: { score: number; total: number } | null;
+}
+
+export interface RevisionDetail {
+  id: string;
+  type: ContentType;
+  titre: string;
+  chapitre: Chapitre | null;
+  body: Fiche | Flashcards | QuizForApprenti;
+}
+
+export interface QuizCorrection {
+  score: number;
+  total: number;
+  questions: { enonce: string; choix: string[]; reponse: number; bonne_reponse: number; correct: boolean; explication: string }[];
+}
+
 export interface LLMStatus {
   fournisseur: string;
   modele: string;

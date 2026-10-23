@@ -12,6 +12,7 @@ import { useAuth } from '../../auth/AuthContext';
 import { Alert, Field, Page, formatDate, useAsyncAction } from '../../components/ui';
 import { ClassForm } from './ClassForm';
 import { CoursClasse } from './CoursClasse';
+import { ContenusClasse } from './ContenusClasse';
 
 type Act = <T>(action: () => Promise<T>, success?: ReactNode | ((result: T) => ReactNode)) => Promise<void>;
 
@@ -138,6 +139,7 @@ export function ClasseDetail() {
       </section>
 
       <CoursClasse classId={cls.id} />
+      <ContenusClasse classId={cls.id} />
 
       <section className="card">
         <details>

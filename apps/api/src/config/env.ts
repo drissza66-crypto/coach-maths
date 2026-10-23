@@ -79,6 +79,9 @@ const envSchema = z.object({
   ),
   FILE_RETENTION_DAYS: z.coerce.number().int().positive().default(30),
   UPLOAD_MAX_MB: z.coerce.number().positive().max(50).default(10),
+
+  /** Générations de fiches/quiz/cartes par formateur et par jour. */
+  GENERATION_DAILY_LIMIT: z.coerce.number().int().positive().default(30),
   MOCK_DELAY_MS: z.coerce.number().int().min(0).default(15),
   MOCK_FAIL: z.preprocess(
     (v) => (v === '' ? undefined : v),

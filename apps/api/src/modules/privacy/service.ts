@@ -5,6 +5,7 @@ import type { Db } from '../../db/client.js';
 import { classMembers, classes, consents, users, type User } from '../../db/schema.js';
 import { forbidden } from '../../lib/http.js';
 import { exportConversations } from '../tutor/service.js';
+import { exportAttempts } from '../contents/service.js';
 import { removeFilesWhere, toCourseDocument } from '../documents/service.js';
 import { documents } from '../../db/schema.js';
 
@@ -100,6 +101,7 @@ export async function exportUserData(deps: AppDeps, user: User) {
       retireLe: c.revokedAt?.toISOString() ?? null,
     })),
     conversationsAvecLeTuteur: await exportConversations(deps, user.id),
+    resultatsDesQuiz: await exportAttempts(deps, user.id),
     documentsImportes: (await db.select().from(documents).where(eq(documents.ownerId, user.id))).map(toCourseDocument),
   };
 }

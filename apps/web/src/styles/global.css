@@ -608,3 +608,104 @@ details > summary {
   min-height: 3.2rem;
   margin-bottom: 0.3rem;
 }
+
+/* ── Révisions : fiche, cartes, quiz ────────────────────────── */
+
+.fiche-resume {
+  font-size: 1.1rem;
+}
+.fiche-formule {
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-weight: 700;
+  font-size: 1.05rem;
+  background: var(--surface-2);
+  border-left: 6px solid var(--accent);
+  padding: 0.8rem 1rem;
+  border-radius: 8px;
+  overflow-wrap: anywhere;
+}
+
+.flashcard {
+  min-height: 12rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  border-radius: var(--radius);
+  border: 2px solid var(--accent);
+  background: var(--surface);
+  text-align: center;
+}
+.flashcard-recto {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+}
+.flashcard-verso {
+  font-size: 1.15rem;
+  margin: 0;
+  padding-top: 1rem;
+  border-top: 1px dashed var(--border);
+}
+
+.quiz {
+  list-style: none;
+  padding: 0;
+  counter-reset: question;
+}
+.quiz > li {
+  counter-increment: question;
+}
+.quiz-enonce {
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+.quiz-enonce::before {
+  content: counter(question) '. ';
+  color: var(--accent-text);
+}
+.quiz-choix {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.75rem;
+}
+.quiz-choix li,
+.quiz-option {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+}
+.quiz-option:hover {
+  background: var(--surface-2);
+}
+.choix-bon {
+  background: var(--success-bg);
+  border-color: var(--success-text) !important;
+}
+.choix-faux {
+  background: var(--danger-bg);
+  border-color: var(--danger) !important;
+}
+.choice-letter {
+  display: inline-grid;
+  place-items: center;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  font-weight: 700;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+.quiz-explication {
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+}

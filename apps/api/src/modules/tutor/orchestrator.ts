@@ -27,9 +27,21 @@ const KEYWORDS: [RegExp, Chapitre, string][] = [
   [/angle|p[ée]rim[èe]tre|cercle|rayon|diam[èe]tre|triangle|rectangle/i, 'geometrie', 'géométrie'],
 ];
 
-/** Classement local par mots-clés : mode Mock, ou secours si l'IA ne répond pas. */
+/**
+ * Classement local par mots-clés : mode Mock, ou secours si l'IA ne répond pas.
+ * Le chapitre qui a le plus de mots-clés l'emporte (« 10 % de chutes » dans un
+ * cours sur les aires ne doit pas le classer en pourcentages).
+ */
 export function classifyByKeywords(enonce: string): Classification {
-  const hit = KEYWORDS.find(([re]) => re.test(enonce));
+  let hit: (typeof KEYWORDS)[number] | undefined;
+  let best = 0;
+  for (const rule of KEYWORDS) {
+    const count = enonce.match(new RegExp(rule[0].source, 'gi'))?.length ?? 0;
+    if (count > best) {
+      best = count;
+      hit = rule;
+    }
+  }
   return {
     chapitre: hit?.[1] ?? 'calcul',
     notion: hit?.[2] ?? 'calcul',

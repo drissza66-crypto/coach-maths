@@ -194,5 +194,9 @@ describe('déroulé du parcours (décidé par le serveur)', () => {
     expect(classifyByKeywords(ENONCE).chapitre).toBe('aires_volumes');
     expect(classifyByKeywords('Calcule l’hypoténuse').chapitre).toBe('pythagore');
     expect(classifyByKeywords('Une remise de 15 %').chapitre).toBe('pourcentages');
+    // Le chapitre le plus représenté l'emporte, pas le premier trouvé.
+    expect(
+      classifyByKeywords('Aires et surfaces à carreler. Aire = longueur × largeur en m². Ajoutez 10 % de chutes au carrelage.').chapitre,
+    ).toBe('aires_volumes');
   });
 });

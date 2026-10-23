@@ -3,8 +3,9 @@
 Application web gratuite d'appui en mathématiques pour les apprentis de CAP
 (maçonnerie, menuiserie, plomberie…). Le tuteur guide sans donner les réponses.
 
-> **État : étapes 1 à 4 sur 7 — comptes et classes, couche fournisseur d'IA, chat tuteur,
-> import de documents et OCR.** Les fiches/quiz, le tableau de bord et le suivi arrivent ensuite.
+> **État : étapes 1 à 5 sur 7 — comptes et classes, couche fournisseur d'IA, chat tuteur,
+> import de documents et OCR, fiches/quiz/cartes mémoire.** Le tableau de bord formateur et
+> le suivi des progrès arrivent ensuite.
 
 ## Démarrer en local
 
@@ -165,6 +166,29 @@ masquées) est placé dans la zone de saisie pour que l'apprenti le vérifie.
 
 Limites connues : un PDF scanné (images seules) est refusé, il faut importer des photos
 des pages. En mode Mock, l'OCR renvoie toujours le même énoncé de démonstration.
+
+## Fiches, quiz et cartes mémoire
+
+Parcours du formateur (page de la classe, section « Révisions de la classe ») :
+1. **Générer** une fiche de révision, un quiz (QCM) ou des cartes mémoire, à partir d'un
+   cours importé (son texte est transmis à l'IA) ou d'une simple notion, avec des consignes
+   facultatives (« niveau facile », « exemples de plomberie »…).
+2. **Relire** le brouillon : bonnes réponses et explications visibles, renommer, retirer
+   une question ou une carte. ⚠️ L'IA peut se tromper dans un calcul : tout est relu avant
+   publication.
+3. **Publier** pour la classe (ou dépublier).
+
+Côté apprenti (« Réviser ») : la fiche, les cartes une à une (réponse à la demande),
+le quiz. **Les bonnes réponses restent sur le serveur** : le quiz est corrigé côté serveur,
+qui renvoie le score et une explication pour chaque erreur. Les résultats sont enregistrés
+(pour le suivi des progrès) et figurent dans l'export « Mes données ».
+
+Détails : sorties de l'IA validées par des schémas Zod (`packages/shared`), 4 choix
+différents par question, choix mélangés (les modèles placent souvent la bonne réponse en
+premier), typographie française, limite de `GENERATION_DAILY_LIMIT` générations par jour
+et par formateur. Prompts : `src/prompts/generate.{fiche,quiz,flashcards}.md`. En mode
+Mock, un contenu de démonstration réaliste (aires et carrelage, calculs vérifiés) est
+utilisé.
 
 ## Données personnelles (RGPD)
 
