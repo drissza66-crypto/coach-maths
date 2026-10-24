@@ -24,7 +24,14 @@ export function createApp(deps: AppDeps) {
   app.disable('x-powered-by');
   app.set('trust proxy', 1);
 
-  app.use(helmet());
+  // « upgrade-insecure-requests » force le navigateur à recharger les fichiers en HTTPS :
+  // utile derrière un vrai HTTPS, mais casse tout sur un réseau local en HTTP (pilote au CFA).
+  const https = deps.env.APP_URL.startsWith('https://');
+  app.use(
+    helmet({
+      contentSecurityPolicy: { useDefaults: true, directives: { 'upgrade-insecure-requests': https ? [] : null } },
+    }),
+  );
   app.use(express.json({ limit: '100kb' }));
   app.use(cookieParser());
   app.use(sameOrigin(deps.env.APP_URL));
