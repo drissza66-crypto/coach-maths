@@ -45,6 +45,9 @@ const envSchema = z.object({
 
   CONSENT_VERSION: z.string().default('2026-10'),
 
+  /** Dossier de l'interface construite. Par défaut en production : apps/web/dist. */
+  WEB_DIST_DIR: optionalString,
+
   // ── Fournisseur d'IA : choisi uniquement ici, jamais dans le code ──
   LLM_PROVIDER: z.preprocess((v) => (v === '' ? undefined : v), z.enum(PROVIDER_NAMES).default('mock')),
   LLM_MODEL: optionalString,
@@ -142,4 +145,28 @@ export function parseEnv(source: Record<string, string | undefined>): Env {
   ];
   if (problems.length) throw new Error(`Configuration invalide :\n${problems.map((p) => `  - ${p}`).join('\n')}`);
   return env;
+}
+
+/**
+ * Ce qu'il faut pour qu'un déploiement soit utilisable et sûr. Vérifié au démarrage
+ * du serveur (pas dans parseEnv, pour que les tests puissent simuler la production).
+ */
+export function productionProblems(env: Env): string[] {
+  if (env.NODE_ENV !== 'production') return [];
+  const problems: string[] = [];
+  if (!env.DATABASE_URL || !/^postgres(ql)?:\/\//.test(env.DATABASE_URL)) {
+    problems.push('DATABASE_URL=postgres://… est obligatoire : la base embarquée est réservée au développement.');
+  }
+  if (!env.APP_URL.startsWith('https://')) problems.push('APP_URL doit commencer par https://.');
+  if (env.MAIL_TRANSPORT !== 'smtp') {
+    problems.push('MAIL_TRANSPORT=smtp est obligatoire : sans e-mail, aucun formateur ne peut se connecter.');
+  }
+  if (!env.FORMATEUR_ALLOWED_DOMAINS.length) {
+    problems.push('FORMATEUR_ALLOWED_DOMAINS est vide : aucun formateur ne pourrait créer son compte.');
+  }
+  if (!env.FILE_ENCRYPTION_KEY) problems.push('FILE_ENCRYPTION_KEY est obligatoire (openssl rand -base64 32).');
+  if (env.LLM_PROVIDER === 'mock') {
+    problems.push('LLM_PROVIDER=mock : les apprentis recevraient des réponses de démonstration.');
+  }
+  return problems;
 }

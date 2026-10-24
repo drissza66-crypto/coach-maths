@@ -20,10 +20,17 @@ export class ConsoleMailer implements Mailer {
   }
 }
 
-export async function createMailer(env: Env): Promise<Mailer> {
+export async function createMailer(env: Env, options: { verify?: boolean } = {}): Promise<Mailer> {
   if (env.MAIL_TRANSPORT === 'console') return new ConsoleMailer();
   const nodemailer = await import('nodemailer');
   const transport = nodemailer.createTransport(env.SMTP_URL!);
+  if (options.verify) {
+    // Prévenir dès le démarrage plutôt qu'au premier formateur qui ne reçoit rien.
+    await transport.verify().then(
+      () => console.info('[mail] serveur SMTP joignable.'),
+      (err: Error) => console.error(`[mail] ⚠️ serveur SMTP injoignable (${err.message}) : les formateurs ne recevront pas leur lien.`),
+    );
+  }
   return {
     async send(mail) {
       await transport.sendMail({ from: env.MAIL_FROM, ...mail });

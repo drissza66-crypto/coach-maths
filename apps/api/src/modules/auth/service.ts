@@ -31,14 +31,20 @@ export async function requestMagicLink({ db, env, mailer }: AppDeps, email: stri
   });
   // Jeton dans le fragment (#) : il n'apparaît ni dans les logs serveur ni dans le Referer.
   const link = `${env.APP_URL}/formateur/verification#token=${token}`;
-  await mailer.send({
-    to: email,
-    subject: 'Votre lien de connexion — Coach Maths',
-    text:
-      `Bonjour,\n\nCliquez sur ce lien pour vous connecter à Coach Maths :\n${link}\n\n` +
-      `Il est valable ${env.MAGIC_LINK_TTL_MINUTES} minutes et ne sert qu'une fois.\n` +
-      `Si vous n'avez rien demandé, ignorez ce message.`,
-  });
+  try {
+    await mailer.send({
+      to: email,
+      subject: 'Votre lien de connexion — Coach Maths',
+      text:
+        `Bonjour,\n\nCliquez sur ce lien pour vous connecter à Coach Maths :\n${link}\n\n` +
+        `Il est valable ${env.MAGIC_LINK_TTL_MINUTES} minutes et ne sert qu'une fois.\n` +
+        `Si vous n'avez rien demandé, ignorez ce message.`,
+    });
+  } catch (err) {
+    // Le détail (serveur, identifiants) va dans les logs, jamais à l'utilisateur.
+    console.error('[mail] envoi du lien impossible :', (err as Error)?.message);
+    throw new HttpError(503, 'L’e-mail n’a pas pu être envoyé. Réessayez dans quelques minutes ou prévenez l’administrateur.');
+  }
   const devLink = env.MAIL_TRANSPORT === 'console' && env.NODE_ENV !== 'production' ? link : undefined;
   return { devLink };
 }

@@ -1,4 +1,7 @@
-import express from 'express';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import express, { type Express } from 'express';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
@@ -53,7 +56,42 @@ export function createApp(deps: AppDeps) {
   app.use('/api/tableau-de-bord', dashboardRouter(deps));
   app.use('/api', progressRouter(deps));
   app.use('/api', (_req, _res, next) => next(notFound()));
+
+  const webDir = webDistDir(deps.env);
+  if (webDir) serveWeb(app, webDir);
   app.use(errorHandler);
 
   return app;
+}
+
+/**
+ * Interface construite (`npm run build`) servie par l'API elle-même : un seul serveur,
+ * une seule origine, donc des cookies « même site » sans configuration. En développement,
+ * c'est Vite qui sert l'interface ; on ne la sert ici qu'en production ou sur demande.
+ */
+function webDistDir(env: AppDeps['env']): string | null {
+  const dir = env.WEB_DIST_DIR ?? (env.NODE_ENV === 'production' ? fileURLToPath(new URL('../../web/dist', import.meta.url)) : null);
+  if (!dir) return null;
+  if (!existsSync(join(dir, 'index.html'))) {
+    throw new Error(`Interface introuvable dans ${dir} : lancez « npm run build » ou réglez WEB_DIST_DIR.`);
+  }
+  return dir;
+}
+
+function serveWeb(app: Express, dir: string) {
+  // Fichiers à nom unique (hachage dans le nom) : mis en cache longtemps.
+  app.use('/assets', express.static(join(dir, 'assets'), { immutable: true, maxAge: '1y' }));
+  // Ancienne version en cache qui demande un fichier disparu : 404, pas la page d'accueil.
+  app.use('/assets', (_req, res) => {
+    res.status(404).end();
+  });
+  app.use(express.static(dir, { index: false, maxAge: '1h' }));
+  // Toute autre page (/apprenti/tuteur/…, rechargement compris) : l'application React prend le relais.
+  const indexHtml = join(dir, 'index.html');
+  app.use((req, res, next) => {
+    if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+    if (!req.accepts('html')) return next();
+    res.setHeader('Cache-Control', 'no-cache');
+    res.sendFile(indexHtml);
+  });
 }

@@ -40,7 +40,7 @@ Pour repartir de zéro : supprimer le dossier `PGLITE_DATA_DIR` puis relancer `n
 | Commande | Rôle |
 |---|---|
 | `npm run dev` | API + interface en mode développement |
-| `npm test` | Tests de l'API (base en mémoire, aucune configuration) |
+| `npm test` | Tests de l'API (base en mémoire, aucune configuration ; `TEST_DATABASE_URL=postgres://…` pour un vrai PostgreSQL) |
 | `npm run typecheck` | Vérification TypeScript de tout le projet |
 | `npm run build` | Construction de l'interface (`apps/web/dist`) |
 | `npm run db:generate` | Nouvelle migration SQL après modification de `schema.ts` |
@@ -215,7 +215,7 @@ Page de la classe → « Tableau de bord de la classe » (7 ou 30 derniers jours
 
 **Le formateur voit des compteurs et des taux, jamais ce que les apprentis écrivent au
 coach.** Les signaux de mal-être détectés par la modération ne sont pas affichés : les
-remonter à un adulte référent est une décision à prendre avec le CFA et son DPO.
+remonter à un adulte référent est une décision à prendre par le CFA, responsable du traitement.
 
 ## Suivi des progrès
 
@@ -249,7 +249,8 @@ comptent pas double. Le temps des formateurs n'est pas suivi.
 - **Aucune publicité, aucun pistage**, aucune ressource tierce chargée par l'interface.
 
 > ⚠️ **Avant d'accueillir de vrais apprentis (souvent mineurs)** :
-> - faire valider la base légale et les textes d'information par le DPO du CFA ;
+> - faire valider la base légale et les textes d'information par le CFA, responsable
+>   du traitement ;
 > - héberger en UE (Scaleway, OVH, Clever Cloud…) avec PostgreSQL managé ;
 > - choisir un fournisseur d'IA dont le contrat **interdit l'entraînement sur les
 >   données** et garantit un traitement dans l'UE (DPA signé). Les offres gratuites
@@ -273,9 +274,17 @@ LLM_MODEL=…
 LLM_API_KEY=…
 ```
 
-L'API applique les migrations au démarrage. L'interface (`apps/web/dist`) se sert
-derrière le même domaine que l'API (proxy `/api`), pour que les cookies restent
-« même site ». `docker-compose.yml` fournit un PostgreSQL local pour tester ce mode.
+En production, l'API sert aussi l'interface construite (`apps/web/dist`, ou
+`WEB_DIST_DIR`) : une seule adresse, des cookies « même site » sans réglage. Elle applique
+les migrations au démarrage et **refuse de démarrer** si un réglage indispensable manque
+(base PostgreSQL, HTTPS, SMTP, domaines formateurs, clé de chiffrement, vraie IA).
+
+```bash
+docker compose --profile app up -d --build    # PostgreSQL + application (Dockerfile)
+```
+
+Guide complet — proxy HTTPS, sauvegardes de la base, des fichiers et de la clé,
+surveillance, mises à jour : [docs/DEPLOIEMENT.md](docs/DEPLOIEMENT.md).
 
 ## Critères d'acceptation
 

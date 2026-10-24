@@ -1,17 +1,47 @@
-# PostgreSQL pour tester comme en production (facultatif : sans Docker,
-# l'API utilise PostgreSQL embarqué). Puis dans .env :
-#   DATABASE_URL=postgres://mathsuivi:mathsuivi@localhost:5432/mathsuivi
+# Développement : seulement PostgreSQL, pour tester comme en production
+# (facultatif : sans Docker, l'API utilise PostgreSQL embarqué).
+#   docker compose up -d postgres
+#   puis dans .env : DATABASE_URL=postgres://mathsuivi:mathsuivi@localhost:5432/mathsuivi
+#
+# Production : PostgreSQL + l'application, derrière un proxy HTTPS (voir docs/DEPLOIEMENT.md).
+#   cp .env.example .env.production   puis compléter
+#   POSTGRES_PASSWORD=… docker compose --profile app up -d --build
 services:
   postgres:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_USER: mathsuivi
-      POSTGRES_PASSWORD: mathsuivi
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mathsuivi}
       POSTGRES_DB: mathsuivi
     ports:
       - '127.0.0.1:5432:5432'
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U mathsuivi -d mathsuivi']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    profiles: ['app']
+    build: .
+    restart: unless-stopped
+    env_file: .env.production
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://mathsuivi:${POSTGRES_PASSWORD:-mathsuivi}@postgres:5432/mathsuivi
+      FILES_DIR: /data/files
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Seul le proxy HTTPS de la machine doit y accéder.
+    ports:
+      - '127.0.0.1:3001:3001'
+    volumes:
+      - files:/data
 
 volumes:
   pgdata:
+  files:

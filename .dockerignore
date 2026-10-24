@@ -1,0 +1,12 @@
+**/node_modules
+**/dist
+**/.data
+**/coverage
+**/*.log
+.env
+.env.*
+!.env.example
+.git
+.claude
+apps/api/tests
+apps/api/evals
