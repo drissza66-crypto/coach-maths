@@ -3,6 +3,34 @@
 Une seule application Node.js : l'API sert aussi l'interface. Il lui faut un PostgreSQL,
 un serveur SMTP, un dossier pour les fichiers importés (chiffrés) et un proxy HTTPS devant.
 
+## Pilote sur un PC du CFA (réseau local, sans HTTPS)
+
+Pour quelques apprentis, l'application peut tourner sur le PC du formateur, sans Docker
+ni e-mail :
+
+```bash
+NODE_ENV=development
+APP_URL=http://NOM-DU-PC.local:3001       # nom Windows du PC (echo %COMPUTERNAME%)
+WEB_DIST_DIR=C:/chemin/vers/mathsuivi-tuteur/apps/web/dist
+MAIL_TRANSPORT=console                    # le lien formateur s'affiche dans le terminal
+FORMATEUR_ALLOWED_DOMAINS=votre-cfa.fr
+```
+
+```bash
+npm run build
+npm run start -w @mathsuivi/api
+```
+
+- Les apprentis ouvrent `http://NOM-DU-PC.local:3001` (le nom ne change pas quand l'IP
+  change). Si leur appareil ne résout pas les noms `.local`, l'IP du moment marche aussi :
+  hors production, toute adresse qui mène au serveur lui-même (nom `.local`, IP, localhost)
+  est acceptée, un nom de domaine ordinaire non.
+- Ouvrir le port 3001 dans le pare-feu Windows (en administrateur) :
+  `New-NetFirewallRule -DisplayName "Coach Maths" -Direction Inbound -Protocol TCP -LocalPort 3001 -Action Allow`
+- Base embarquée (PGlite) : sauvegarder le dossier `PGLITE_DATA_DIR` serveur arrêté.
+
+Le reste de ce guide concerne un déploiement complet sur serveur.
+
 ## 1. Avant de commencer
 
 - **Hébergement dans l'UE** (Scaleway, OVH, Clever Cloud…), PostgreSQL 14 ou plus récent.

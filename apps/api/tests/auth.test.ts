@@ -171,6 +171,35 @@ describe('sessions et sécurité', () => {
       .expect(403);
   });
 
+  it('accepte le PC lui-même sous son nom .local ou une autre IP (pilote sur réseau local)', async () => {
+    for (const host of ['cfa661pt0446.local:3001', '192.168.1.77:3001']) {
+      await request(ctx.app)
+        .post('/api/auth/apprenti/connexion')
+        .set('Host', host)
+        .set('Origin', `http://${host}`)
+        .send({ code: DEMO.classCode, pseudo: 'Truelle', pin: truelle!.pin })
+        .expect(200);
+    }
+  });
+
+  it('refuse un nom de domaine qui pointerait vers le PC (DNS rebinding)', async () => {
+    await request(ctx.app)
+      .post('/api/auth/apprenti/connexion')
+      .set('Host', 'piege.example:3001')
+      .set('Origin', 'http://piege.example:3001')
+      .send({ code: DEMO.classCode, pseudo: 'Truelle', pin: truelle!.pin })
+      .expect(403);
+  });
+
+  it('refuse une origine locale qui ne correspond pas au serveur appelé', async () => {
+    await request(ctx.app)
+      .post('/api/auth/apprenti/connexion')
+      .set('Host', '192.168.1.50:3001')
+      .set('Origin', 'http://192.168.1.99:8080')
+      .send({ code: DEMO.classCode, pseudo: 'Truelle', pin: truelle!.pin })
+      .expect(403);
+  });
+
   it('un apprenti n’accède pas aux routes formateur', async () => {
     const agent = await apprentiAgent(ctx.app, 'Truelle', truelle!.pin);
     await agent.get('/api/classes').expect(403);

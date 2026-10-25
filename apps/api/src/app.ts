@@ -34,7 +34,7 @@ export function createApp(deps: AppDeps) {
   );
   app.use(express.json({ limit: '100kb' }));
   app.use(cookieParser());
-  app.use(sameOrigin(deps.env.APP_URL));
+  app.use(sameOrigin(deps.env.APP_URL, { localNetwork: deps.env.NODE_ENV !== 'production' }));
   app.use(loadSession(deps));
 
   // Large : toute une classe se connecte souvent depuis la même adresse IP du CFA.

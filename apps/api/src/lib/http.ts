@@ -42,12 +42,37 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
  * Bloque les requêtes d'écriture venant d'un autre site (protection CSRF,
  * en plus du cookie SameSite=Lax).
  */
-export function sameOrigin(allowedOrigin: string): RequestHandler {
+export function sameOrigin(allowedOrigin: string, options: { localNetwork?: boolean } = {}): RequestHandler {
   const allowed = new URL(allowedOrigin).origin;
   return (req, _res, next) => {
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
     const origin = req.get('origin');
-    if (origin && origin !== allowed) return next(forbidden('Origine non autorisée.'));
+    if (origin && origin !== allowed && !(options.localNetwork && isLocalSelf(origin, req.get('host')))) {
+      return next(forbidden('Origine non autorisée.'));
+    }
     next();
   };
+}
+
+/**
+ * Pilote sur le réseau du CFA : la page vient du serveur lui-même, quelle que soit l'adresse
+ * tapée (nom du PC en .local, IP qui a changé, localhost). Les noms de domaine ordinaires restent
+ * refusés : un site piégé qui ferait pointer son nom vers ce PC (« DNS rebinding ») est bloqué.
+ */
+function isLocalSelf(origin: string, host: string | undefined): boolean {
+  let url: URL;
+  try {
+    url = new URL(origin);
+  } catch {
+    return false;
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
+  if (!host || url.host !== host.toLowerCase()) return false;
+  const name = url.hostname;
+  return (
+    name === 'localhost' ||
+    name.endsWith('.local') ||
+    /^\d{1,3}(\.\d{1,3}){3}$/.test(name) ||
+    (name.startsWith('[') && name.endsWith(']'))
+  );
 }

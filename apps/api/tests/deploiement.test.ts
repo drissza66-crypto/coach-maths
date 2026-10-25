@@ -143,6 +143,15 @@ describe("l'API sert l'interface construite", () => {
     await request(ctx.app).get('/assets/ancien-zzz.js').set('Accept', 'text/html').expect(404);
   });
 
+  it('en production, seule APP_URL est une origine acceptée', async () => {
+    await request(ctx.app)
+      .post('/api/auth/formateur/lien')
+      .set('Host', '192.168.1.50:3001')
+      .set('Origin', 'http://192.168.1.50:3001')
+      .send({ email: DEMO.formateurEmail })
+      .expect(403);
+  });
+
   it("garde des réponses JSON pour l'API", async () => {
     const res = await request(ctx.app).get('/api/inconnu').set('Accept', 'text/html').expect(404);
     expect(res.headers['content-type']).toMatch(/json/);
