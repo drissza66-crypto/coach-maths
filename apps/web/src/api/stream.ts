@@ -22,7 +22,7 @@ export async function postStream(
     });
   } catch (err) {
     if (signal?.aborted) throw err;
-    throw new ApiError(0, 'Pas de connexion au serveur. Vérifie ta connexion internet.');
+    throw new ApiError(0, 'Coach Maths ne répond pas. Vérifie le Wi-Fi ou préviens ton formateur, puis réessaie.');
   }
   if (!res.ok || !res.body) {
     const data = await res.json().catch(() => null);

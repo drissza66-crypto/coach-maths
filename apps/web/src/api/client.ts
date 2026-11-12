@@ -19,7 +19,7 @@ export async function api<T = void>(path: string, method: Method = 'GET', body?:
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
-    throw new ApiError(0, 'Pas de connexion au serveur. Vérifie ta connexion internet.');
+    throw new ApiError(0, 'Coach Maths ne répond pas. Vérifie le Wi-Fi ou préviens ton formateur, puis réessaie.');
   }
   if (res.status === 204) return undefined as T;
   const data = await res.json().catch(() => null);
@@ -35,7 +35,7 @@ export async function apiUpload<T>(path: string, form: FormData): Promise<T> {
   try {
     res = await fetch(`/api${path}`, { method: 'POST', credentials: 'same-origin', body: form });
   } catch {
-    throw new ApiError(0, 'Pas de connexion au serveur. Vérifie ta connexion internet.');
+    throw new ApiError(0, 'Coach Maths ne répond pas. Vérifie le Wi-Fi ou préviens ton formateur, puis réessaie.');
   }
   const data = await res.json().catch(() => null);
   if (!res.ok) throw new ApiError(res.status, data?.error ?? 'L’envoi a échoué. Réessaie dans un instant.');

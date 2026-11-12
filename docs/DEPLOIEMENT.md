@@ -28,6 +28,14 @@ npm run start -w @mathsuivi/api
 - Ouvrir le port 3001 dans le pare-feu Windows (en administrateur) :
   `New-NetFirewallRule -DisplayName "Coach Maths" -Direction Inbound -Protocol TCP -LocalPort 3001 -Action Allow`
 - Base embarquée (PGlite) : sauvegarder le dossier `PGLITE_DATA_DIR` serveur arrêté.
+- **Données hors d'`AppData`** (`PGLITE_DATA_DIR`, `FILES_DIR`), par exemple
+  `C:/Users/<vous>/CoachMaths-donnees/…`. Un programme lancé depuis une application
+  « empaquetée » (Microsoft Store, application Claude…) écrit dans `AppData` via un dossier
+  privé : selon qui lance le serveur, on obtient deux bases différentes.
+- **PC branché sur secteur pendant les séances.** Sur batterie, Windows éteint l'écran au bout
+  de quelques minutes, se met en veille et coupe le Wi-Fi : les apprentis voient « Coach Maths
+  ne répond pas ». Sinon : Paramètres → Système → Alimentation → écran et veille « Jamais ».
+- Lancer le serveur dans un terminal qui reste ouvert pendant toute la séance.
 
 Le reste de ce guide concerne un déploiement complet sur serveur.
 

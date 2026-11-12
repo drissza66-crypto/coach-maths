@@ -48,6 +48,8 @@ export function sameOrigin(allowedOrigin: string, options: { localNetwork?: bool
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
     const origin = req.get('origin');
     if (origin && origin !== allowed && !(options.localNetwork && isLocalSelf(origin, req.get('host')))) {
+      // Aide au diagnostic (adresse mal réglée dans APP_URL) : aucune donnée personnelle ici.
+      console.warn(`[api] origine refusée : ${origin} (hôte ${req.get('host')}, attendu ${allowed})`);
       return next(forbidden('Origine non autorisée.'));
     }
     next();
